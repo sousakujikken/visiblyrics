@@ -49,10 +49,10 @@ npm run build
 ```bash
 npm run dev
 ```
-このコマンドでRenderer（UI）の開発サーバーとMain（Electron）プロセスのビルド（watch mode）が並行実行されます。**※Electronアプリケーション自体は起動しません**
+このコマンドでRenderer（UI）の開発サーバーとMain（Electron）プロセスのビルド（watch mode）が並行実行されます。
 
 2. **Electronアプリケーションの起動**
-別のターミナルでこのコマンドを実行してElectronアプリケーションを起動します。
+別のターミナルで下記のコマンドを実行してElectronアプリケーションを起動します。
 ```bash
 npm run electron
 ```
