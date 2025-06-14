@@ -1,0 +1,415 @@
+[
+  {
+    "id": "phrase_0",
+    "phrase": "Hello World",
+    "start": 1000,
+    "end": 5000,
+    "words": [
+      {
+        "id": "phrase_0_word_0",
+        "word": "Hello",
+        "start": 1000,
+        "end": 3500,
+        "chars": [
+          {"id": "phrase_0_word_0_char_0", "char": "H", "start": 1000, "end": 1500},
+          {"id": "phrase_0_word_0_char_1", "char": "e", "start": 1500, "end": 2000},
+          {"id": "phrase_0_word_0_char_2", "char": "l", "start": 2000, "end": 2500},
+          {"id": "phrase_0_word_0_char_3", "char": "l", "start": 2500, "end": 3000},
+          {"id": "phrase_0_word_0_char_4", "char": "o", "start": 3000, "end": 3500}
+        ]
+      },
+      {
+        "id": "phrase_0_word_1",
+        "word": "World",
+        "start": 3500,
+        "end": 5000,
+        "chars": [
+          {"id": "phrase_0_word_1_char_0", "char": "W", "start": 3500, "end": 4000},
+          {"id": "phrase_0_word_1_char_1", "char": "o", "start": 4000, "end": 4250},
+          {"id": "phrase_0_word_1_char_2", "char": "r", "start": 4250, "end": 4500},
+          {"id": "phrase_0_word_1_char_3", "char": "l", "start": 4500, "end": 4750},
+          {"id": "phrase_0_word_1_char_4", "char": "d", "start": 4750, "end": 5000}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "phrase_1",
+    "phrase": "This is a longer phrase",
+    "start": 6000,
+    "end": 12000,
+    "words": [
+      {
+        "id": "phrase_1_word_0",
+        "word": "This",
+        "start": 6000,
+        "end": 7000,
+        "chars": [
+          {"id": "phrase_1_word_0_char_0", "char": "T", "start": 6000, "end": 6250},
+          {"id": "phrase_1_word_0_char_1", "char": "h", "start": 6250, "end": 6500},
+          {"id": "phrase_1_word_0_char_2", "char": "i", "start": 6500, "end": 6750},
+          {"id": "phrase_1_word_0_char_3", "char": "s", "start": 6750, "end": 7000}
+        ]
+      },
+      {
+        "id": "phrase_1_word_1",
+        "word": "is",
+        "start": 7000,
+        "end": 7500,
+        "chars": [
+          {"id": "phrase_1_word_1_char_0", "char": "i", "start": 7000, "end": 7250},
+          {"id": "phrase_1_word_1_char_1", "char": "s", "start": 7250, "end": 7500}
+        ]
+      },
+      {
+        "id": "phrase_1_word_2",
+        "word": "a",
+        "start": 7500,
+        "end": 8000,
+        "chars": [
+          {"id": "phrase_1_word_2_char_0", "char": "a", "start": 7500, "end": 8000}
+        ]
+      },
+      {
+        "id": "phrase_1_word_3",
+        "word": "longer",
+        "start": 8000,
+        "end": 10000,
+        "chars": [
+          {"id": "phrase_1_word_3_char_0", "char": "l", "start": 8000, "end": 8333},
+          {"id": "phrase_1_word_3_char_1", "char": "o", "start": 8333, "end": 8666},
+          {"id": "phrase_1_word_3_char_2", "char": "n", "start": 8666, "end": 9000},
+          {"id": "phrase_1_word_3_char_3", "char": "g", "start": 9000, "end": 9333},
+          {"id": "phrase_1_word_3_char_4", "char": "e", "start": 9333, "end": 9666},
+          {"id": "phrase_1_word_3_char_5", "char": "r", "start": 9666, "end": 10000}
+        ]
+      },
+      {
+        "id": "phrase_1_word_4",
+        "word": "phrase",
+        "start": 10000,
+        "end": 12000,
+        "chars": [
+          {"id": "phrase_1_word_4_char_0", "char": "p", "start": 10000, "end": 10333},
+          {"id": "phrase_1_word_4_char_1", "char": "h", "start": 10333, "end": 10666},
+          {"id": "phrase_1_word_4_char_2", "char": "r", "start": 10666, "end": 11000},
+          {"id": "phrase_1_word_4_char_3", "char": "a", "start": 11000, "end": 11333},
+          {"id": "phrase_1_word_4_char_4", "char": "s", "start": 11333, "end": 11666},
+          {"id": "phrase_1_word_4_char_5", "char": "e", "start": 11666, "end": 12000}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "phrase_2",
+    "phrase": "And continues for much longer time",
+    "start": 14000,
+    "end": 22000,
+    "words": [
+      {
+        "id": "phrase_2_word_0",
+        "word": "And",
+        "start": 14000,
+        "end": 15000,
+        "chars": [
+          {"id": "phrase_2_word_0_char_0", "char": "A", "start": 14000, "end": 14333},
+          {"id": "phrase_2_word_0_char_1", "char": "n", "start": 14333, "end": 14666},
+          {"id": "phrase_2_word_0_char_2", "char": "d", "start": 14666, "end": 15000}
+        ]
+      },
+      {
+        "id": "phrase_2_word_1",
+        "word": "continues",
+        "start": 15000,
+        "end": 17500,
+        "chars": [
+          {"id": "phrase_2_word_1_char_0", "char": "c", "start": 15000, "end": 15277},
+          {"id": "phrase_2_word_1_char_1", "char": "o", "start": 15277, "end": 15555},
+          {"id": "phrase_2_word_1_char_2", "char": "n", "start": 15555, "end": 15833},
+          {"id": "phrase_2_word_1_char_3", "char": "t", "start": 15833, "end": 16111},
+          {"id": "phrase_2_word_1_char_4", "char": "i", "start": 16111, "end": 16388},
+          {"id": "phrase_2_word_1_char_5", "char": "n", "start": 16388, "end": 16666},
+          {"id": "phrase_2_word_1_char_6", "char": "u", "start": 16666, "end": 16944},
+          {"id": "phrase_2_word_1_char_7", "char": "e", "start": 16944, "end": 17222},
+          {"id": "phrase_2_word_1_char_8", "char": "s", "start": 17222, "end": 17500}
+        ]
+      },
+      {
+        "id": "phrase_2_word_2",
+        "word": "for",
+        "start": 17500,
+        "end": 18000,
+        "chars": [
+          {"id": "phrase_2_word_2_char_0", "char": "f", "start": 17500, "end": 17666},
+          {"id": "phrase_2_word_2_char_1", "char": "o", "start": 17666, "end": 17833},
+          {"id": "phrase_2_word_2_char_2", "char": "r", "start": 17833, "end": 18000}
+        ]
+      },
+      {
+        "id": "phrase_2_word_3",
+        "word": "much",
+        "start": 18000,
+        "end": 19000,
+        "chars": [
+          {"id": "phrase_2_word_3_char_0", "char": "m", "start": 18000, "end": 18250},
+          {"id": "phrase_2_word_3_char_1", "char": "u", "start": 18250, "end": 18500},
+          {"id": "phrase_2_word_3_char_2", "char": "c", "start": 18500, "end": 18750},
+          {"id": "phrase_2_word_3_char_3", "char": "h", "start": 18750, "end": 19000}
+        ]
+      },
+      {
+        "id": "phrase_2_word_4",
+        "word": "longer",
+        "start": 19000,
+        "end": 20500,
+        "chars": [
+          {"id": "phrase_2_word_4_char_0", "char": "l", "start": 19000, "end": 19250},
+          {"id": "phrase_2_word_4_char_1", "char": "o", "start": 19250, "end": 19500},
+          {"id": "phrase_2_word_4_char_2", "char": "n", "start": 19500, "end": 19750},
+          {"id": "phrase_2_word_4_char_3", "char": "g", "start": 19750, "end": 20000},
+          {"id": "phrase_2_word_4_char_4", "char": "e", "start": 20000, "end": 20250},
+          {"id": "phrase_2_word_4_char_5", "char": "r", "start": 20250, "end": 20500}
+        ]
+      },
+      {
+        "id": "phrase_2_word_5",
+        "word": "time",
+        "start": 20500,
+        "end": 22000,
+        "chars": [
+          {"id": "phrase_2_word_5_char_0", "char": "t", "start": 20500, "end": 20875},
+          {"id": "phrase_2_word_5_char_1", "char": "i", "start": 20875, "end": 21250},
+          {"id": "phrase_2_word_5_char_2", "char": "m", "start": 21250, "end": 21625},
+          {"id": "phrase_2_word_5_char_3", "char": "e", "start": 21625, "end": 22000}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "phrase_3",
+    "phrase": "Testing a very long timeline with multiple phrases",
+    "start": 24000,
+    "end": 40000,
+    "words": [
+      {
+        "id": "phrase_3_word_0",
+        "word": "Testing",
+        "start": 24000,
+        "end": 26000,
+        "chars": [
+          {"id": "phrase_3_word_0_char_0", "char": "T", "start": 24000, "end": 24285},
+          {"id": "phrase_3_word_0_char_1", "char": "e", "start": 24285, "end": 24571},
+          {"id": "phrase_3_word_0_char_2", "char": "s", "start": 24571, "end": 24857},
+          {"id": "phrase_3_word_0_char_3", "char": "t", "start": 24857, "end": 25142},
+          {"id": "phrase_3_word_0_char_4", "char": "i", "start": 25142, "end": 25428},
+          {"id": "phrase_3_word_0_char_5", "char": "n", "start": 25428, "end": 25714},
+          {"id": "phrase_3_word_0_char_6", "char": "g", "start": 25714, "end": 26000}
+        ]
+      },
+      {
+        "id": "phrase_3_word_1",
+        "word": "a",
+        "start": 26000,
+        "end": 26500,
+        "chars": [
+          {"id": "phrase_3_word_1_char_0", "char": "a", "start": 26000, "end": 26500}
+        ]
+      },
+      {
+        "id": "phrase_3_word_2",
+        "word": "very",
+        "start": 26500,
+        "end": 28000,
+        "chars": [
+          {"id": "phrase_3_word_2_char_0", "char": "v", "start": 26500, "end": 26875},
+          {"id": "phrase_3_word_2_char_1", "char": "e", "start": 26875, "end": 27250},
+          {"id": "phrase_3_word_2_char_2", "char": "r", "start": 27250, "end": 27625},
+          {"id": "phrase_3_word_2_char_3", "char": "y", "start": 27625, "end": 28000}
+        ]
+      },
+      {
+        "id": "phrase_3_word_3",
+        "word": "long",
+        "start": 28000,
+        "end": 30000,
+        "chars": [
+          {"id": "phrase_3_word_3_char_0", "char": "l", "start": 28000, "end": 28500},
+          {"id": "phrase_3_word_3_char_1", "char": "o", "start": 28500, "end": 29000},
+          {"id": "phrase_3_word_3_char_2", "char": "n", "start": 29000, "end": 29500},
+          {"id": "phrase_3_word_3_char_3", "char": "g", "start": 29500, "end": 30000}
+        ]
+      },
+      {
+        "id": "phrase_3_word_4",
+        "word": "timeline",
+        "start": 30000,
+        "end": 33000,
+        "chars": [
+          {"id": "phrase_3_word_4_char_0", "char": "t", "start": 30000, "end": 30375},
+          {"id": "phrase_3_word_4_char_1", "char": "i", "start": 30375, "end": 30750},
+          {"id": "phrase_3_word_4_char_2", "char": "m", "start": 30750, "end": 31125},
+          {"id": "phrase_3_word_4_char_3", "char": "e", "start": 31125, "end": 31500},
+          {"id": "phrase_3_word_4_char_4", "char": "l", "start": 31500, "end": 31875},
+          {"id": "phrase_3_word_4_char_5", "char": "i", "start": 31875, "end": 32250},
+          {"id": "phrase_3_word_4_char_6", "char": "n", "start": 32250, "end": 32625},
+          {"id": "phrase_3_word_4_char_7", "char": "e", "start": 32625, "end": 33000}
+        ]
+      },
+      {
+        "id": "phrase_3_word_5",
+        "word": "with",
+        "start": 33000,
+        "end": 34500,
+        "chars": [
+          {"id": "phrase_3_word_5_char_0", "char": "w", "start": 33000, "end": 33375},
+          {"id": "phrase_3_word_5_char_1", "char": "i", "start": 33375, "end": 33750},
+          {"id": "phrase_3_word_5_char_2", "char": "t", "start": 33750, "end": 34125},
+          {"id": "phrase_3_word_5_char_3", "char": "h", "start": 34125, "end": 34500}
+        ]
+      },
+      {
+        "id": "phrase_3_word_6",
+        "word": "multiple",
+        "start": 34500,
+        "end": 37000,
+        "chars": [
+          {"id": "phrase_3_word_6_char_0", "char": "m", "start": 34500, "end": 34812},
+          {"id": "phrase_3_word_6_char_1", "char": "u", "start": 34812, "end": 35125},
+          {"id": "phrase_3_word_6_char_2", "char": "l", "start": 35125, "end": 35437},
+          {"id": "phrase_3_word_6_char_3", "char": "t", "start": 35437, "end": 35750},
+          {"id": "phrase_3_word_6_char_4", "char": "i", "start": 35750, "end": 36062},
+          {"id": "phrase_3_word_6_char_5", "char": "p", "start": 36062, "end": 36375},
+          {"id": "phrase_3_word_6_char_6", "char": "l", "start": 36375, "end": 36687},
+          {"id": "phrase_3_word_6_char_7", "char": "e", "start": 36687, "end": 37000}
+        ]
+      },
+      {
+        "id": "phrase_3_word_7",
+        "word": "phrases",
+        "start": 37000,
+        "end": 40000,
+        "chars": [
+          {"id": "phrase_3_word_7_char_0", "char": "p", "start": 37000, "end": 37428},
+          {"id": "phrase_3_word_7_char_1", "char": "h", "start": 37428, "end": 37857},
+          {"id": "phrase_3_word_7_char_2", "char": "r", "start": 37857, "end": 38285},
+          {"id": "phrase_3_word_7_char_3", "char": "a", "start": 38285, "end": 38714},
+          {"id": "phrase_3_word_7_char_4", "char": "s", "start": 38714, "end": 39142},
+          {"id": "phrase_3_word_7_char_5", "char": "e", "start": 39142, "end": 39571},
+          {"id": "phrase_3_word_7_char_6", "char": "s", "start": 39571, "end": 40000}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "phrase_4",
+    "phrase": "Final phrase to complete the long timeline test",
+    "start": 42000,
+    "end": 55000,
+    "words": [
+      {
+        "id": "phrase_4_word_0",
+        "word": "Final",
+        "start": 42000,
+        "end": 44000,
+        "chars": [
+          {"id": "phrase_4_word_0_char_0", "char": "F", "start": 42000, "end": 42400},
+          {"id": "phrase_4_word_0_char_1", "char": "i", "start": 42400, "end": 42800},
+          {"id": "phrase_4_word_0_char_2", "char": "n", "start": 42800, "end": 43200},
+          {"id": "phrase_4_word_0_char_3", "char": "a", "start": 43200, "end": 43600},
+          {"id": "phrase_4_word_0_char_4", "char": "l", "start": 43600, "end": 44000}
+        ]
+      },
+      {
+        "id": "phrase_4_word_1",
+        "word": "phrase",
+        "start": 44000,
+        "end": 46500,
+        "chars": [
+          {"id": "phrase_4_word_1_char_0", "char": "p", "start": 44000, "end": 44416},
+          {"id": "phrase_4_word_1_char_1", "char": "h", "start": 44416, "end": 44833},
+          {"id": "phrase_4_word_1_char_2", "char": "r", "start": 44833, "end": 45250},
+          {"id": "phrase_4_word_1_char_3", "char": "a", "start": 45250, "end": 45666},
+          {"id": "phrase_4_word_1_char_4", "char": "s", "start": 45666, "end": 46083},
+          {"id": "phrase_4_word_1_char_5", "char": "e", "start": 46083, "end": 46500}
+        ]
+      },
+      {
+        "id": "phrase_4_word_2",
+        "word": "to",
+        "start": 46500,
+        "end": 47500,
+        "chars": [
+          {"id": "phrase_4_word_2_char_0", "char": "t", "start": 46500, "end": 47000},
+          {"id": "phrase_4_word_2_char_1", "char": "o", "start": 47000, "end": 47500}
+        ]
+      },
+      {
+        "id": "phrase_4_word_3",
+        "word": "complete",
+        "start": 47500,
+        "end": 50000,
+        "chars": [
+          {"id": "phrase_4_word_3_char_0", "char": "c", "start": 47500, "end": 47812},
+          {"id": "phrase_4_word_3_char_1", "char": "o", "start": 47812, "end": 48125},
+          {"id": "phrase_4_word_3_char_2", "char": "m", "start": 48125, "end": 48437},
+          {"id": "phrase_4_word_3_char_3", "char": "p", "start": 48437, "end": 48750},
+          {"id": "phrase_4_word_3_char_4", "char": "l", "start": 48750, "end": 49062},
+          {"id": "phrase_4_word_3_char_5", "char": "e", "start": 49062, "end": 49375},
+          {"id": "phrase_4_word_3_char_6", "char": "t", "start": 49375, "end": 49687},
+          {"id": "phrase_4_word_3_char_7", "char": "e", "start": 49687, "end": 50000}
+        ]
+      },
+      {
+        "id": "phrase_4_word_4",
+        "word": "the",
+        "start": 50000,
+        "end": 51000,
+        "chars": [
+          {"id": "phrase_4_word_4_char_0", "char": "t", "start": 50000, "end": 50333},
+          {"id": "phrase_4_word_4_char_1", "char": "h", "start": 50333, "end": 50666},
+          {"id": "phrase_4_word_4_char_2", "char": "e", "start": 50666, "end": 51000}
+        ]
+      },
+      {
+        "id": "phrase_4_word_5",
+        "word": "long",
+        "start": 51000,
+        "end": 52500,
+        "chars": [
+          {"id": "phrase_4_word_5_char_0", "char": "l", "start": 51000, "end": 51375},
+          {"id": "phrase_4_word_5_char_1", "char": "o", "start": 51375, "end": 51750},
+          {"id": "phrase_4_word_5_char_2", "char": "n", "start": 51750, "end": 52125},
+          {"id": "phrase_4_word_5_char_3", "char": "g", "start": 52125, "end": 52500}
+        ]
+      },
+      {
+        "id": "phrase_4_word_6",
+        "word": "timeline",
+        "start": 52500,
+        "end": 54000,
+        "chars": [
+          {"id": "phrase_4_word_6_char_0", "char": "t", "start": 52500, "end": 52687},
+          {"id": "phrase_4_word_6_char_1", "char": "i", "start": 52687, "end": 52875},
+          {"id": "phrase_4_word_6_char_2", "char": "m", "start": 52875, "end": 53062},
+          {"id": "phrase_4_word_6_char_3", "char": "e", "start": 53062, "end": 53250},
+          {"id": "phrase_4_word_6_char_4", "char": "l", "start": 53250, "end": 53437},
+          {"id": "phrase_4_word_6_char_5", "char": "i", "start": 53437, "end": 53625},
+          {"id": "phrase_4_word_6_char_6", "char": "n", "start": 53625, "end": 53812},
+          {"id": "phrase_4_word_6_char_7", "char": "e", "start": 53812, "end": 54000}
+        ]
+      },
+      {
+        "id": "phrase_4_word_7",
+        "word": "test",
+        "start": 54000,
+        "end": 55000,
+        "chars": [
+          {"id": "phrase_4_word_7_char_0", "char": "t", "start": 54000, "end": 54250},
+          {"id": "phrase_4_word_7_char_1", "char": "e", "start": 54250, "end": 54500},
+          {"id": "phrase_4_word_7_char_2", "char": "s", "start": 54500, "end": 54750},
+          {"id": "phrase_4_word_7_char_3", "char": "t", "start": 54750, "end": 55000}
+        ]
+      }
+    ]
+  }
+]

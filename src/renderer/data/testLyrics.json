@@ -1,0 +1,69 @@
+[
+  {
+    "id": "phrase_0",
+    "phrase": "Hello",
+    "start": 1000,
+    "end": 3500,
+    "words": [
+      {
+        "id": "phrase_0_word_0",
+        "word": "Hello",
+        "start": 1000,
+        "end": 3500,
+        "chars": [
+          {"id": "phrase_0_word_0_char_0", "char": "H", "start": 1000, "end": 1500},
+          {"id": "phrase_0_word_0_char_1", "char": "e", "start": 1500, "end": 2000},
+          {"id": "phrase_0_word_0_char_2", "char": "l", "start": 2000, "end": 2500},
+          {"id": "phrase_0_word_0_char_3", "char": "l", "start": 2500, "end": 3000},
+          {"id": "phrase_0_word_0_char_4", "char": "o", "start": 3000, "end": 3500}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "phrase_1",
+    "phrase": "世界の国から",
+    "start": 4000,
+    "end": 8000,
+    "words": [
+      {
+        "id": "phrase_1_word_0",
+        "word": "世界",
+        "start": 4000,
+        "end": 5000,
+        "chars": [
+          {"id": "phrase_1_word_0_char_0", "char": "世", "start": 4000, "end": 4500},
+          {"id": "phrase_1_word_0_char_1", "char": "界", "start": 4500, "end": 5000}
+        ]
+      },
+      {
+        "id": "phrase_1_word_1",
+        "word": "の",
+        "start": 5000,
+        "end": 5500,
+        "chars": [
+          {"id": "phrase_1_word_1_char_0", "char": "の", "start": 5000, "end": 5500}
+        ]
+      },
+      {
+        "id": "phrase_1_word_2",
+        "word": "国",
+        "start": 5500,
+        "end": 6500,
+        "chars": [
+          {"id": "phrase_1_word_2_char_0", "char": "国", "start": 5500, "end": 6500}
+        ]
+      },
+      {
+        "id": "phrase_1_word_3",
+        "word": "から",
+        "start": 6500,
+        "end": 8000,
+        "chars": [
+          {"id": "phrase_1_word_3_char_0", "char": "か", "start": 6500, "end": 7250},
+          {"id": "phrase_1_word_3_char_1", "char": "ら", "start": 7250, "end": 8000}
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,219 @@
+/* TemplateTab.css */
+.template-tab {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  height: 100%;
+  overflow-y: auto;
+  background-color: #1a1a1a;
+  color: #f0f0f0;
+}
+
+.template-tab h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #4a4a4a;
+  padding-bottom: 0.5rem;
+  color: #f0f0f0;
+}
+
+.template-section,
+.object-template-section,
+.params-section {
+  margin-bottom: 2rem;
+  background-color: #2a2a2a;
+  border-radius: 6px;
+  padding: 1rem;
+  border: 1px solid #3a3a3a;
+}
+
+.template-section h3,
+.object-template-section h3,
+.params-section h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: #d0d0d0;
+}
+
+.template-section p,
+.object-template-section p,
+.params-section p {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #c0c0c0;
+}
+
+.temp-param-display {
+  background-color: #222;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  padding: 1rem;
+}
+
+.temp-param-display pre {
+  max-height: 300px;
+  overflow: auto;
+  background-color: #1a1a1a;
+  color: #f0f0f0;
+  padding: 1rem;
+  border-radius: 3px;
+  border: 1px solid #3a3a3a;
+}
+
+.temp-param-display .note {
+  font-size: 0.9rem;
+  font-style: italic;
+  color: #999;
+  margin-top: 0.5rem;
+}
+
+.selected-phrase {
+  background-color: rgba(240, 5, 157, 0.1);
+  border: 1px solid rgba(240, 5, 157, 0.3);
+  padding: 0.5rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-weight: bold;
+  color: #f0f0f0;
+}
+
+/* モード切り替えスイッチのスタイル */
+.editor-mode-switch {
+  margin-bottom: 1.5rem;
+}
+
+.switch-container {
+  display: flex;
+  gap: 0;
+  background-color: #2a2a2a;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #4a4a4a;
+}
+
+.mode-button {
+  flex: 1;
+  padding: 0.7rem 1rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  color: #c0c0c0;
+}
+
+.mode-button.active {
+  background-color: #F0059D;
+  color: white;
+  font-weight: bold;
+}
+
+.mode-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mode-button:not(.active):hover {
+  background-color: #3a3a3a;
+}
+
+/* 混在テンプレート警告のスタイル */
+.mixed-templates-warning {
+  background-color: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  color: #ffc107;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.mixed-templates-warning p {
+  margin: 0;
+  color: #ffc107;
+}
+
+/* パラメータ編集無効時のスタイル */
+.param-editor-disabled {
+  background-color: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.param-editor-disabled p {
+  margin: 0;
+  color: #999;
+  text-align: center;
+}
+
+/* 選択なしメッセージのスタイル */
+.no-selection-message {
+  background-color: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  padding: 2rem;
+  border-radius: 4px;
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.no-selection-message p {
+  color: #999;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* グローバル設定と選択オブジェクト設定コンテナ */
+.global-settings,
+.selection-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* テンプレートタブのスクロールバー */
+.template-tab::-webkit-scrollbar {
+  width: 8px;
+}
+
+.template-tab::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 4px;
+}
+
+.template-tab::-webkit-scrollbar-thumb {
+  background: #F0059D;
+  border-radius: 4px;
+}
+
+.template-tab::-webkit-scrollbar-thumb:hover {
+  background: #d0047d;
+}
+
+/* 個別パラメータクリアセクション */
+.clear-params-section {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.clear-params-button {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.clear-params-button:hover {
+  background-color: #c82333;
+}
+
+.clear-params-button:active {
+  transform: scale(0.98);
+}

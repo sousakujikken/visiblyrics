@@ -1,0 +1,302 @@
+.param-editor {
+  padding: 10px;
+  background-color: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  color: #f0f0f0;
+}
+
+.param-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.param-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.param-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #d0d0d0;
+}
+
+.param-control {
+  width: 100%;
+}
+
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.slider-container input[type="range"] {
+  flex: 1;
+  height: 5px;
+  -webkit-appearance: none;
+  background: #4a4a4a;
+  outline: none;
+  border-radius: 5px;
+}
+
+.slider-container input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 15px;
+  height: 15px;
+  background: #F0059D;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.slider-container input[type="range"]::-webkit-slider-thumb:hover {
+  background: #d0047d;
+}
+
+.number-input {
+  width: 70px;
+  padding: 4px;
+  border: 1px solid #4a4a4a;
+  border-radius: 3px;
+  background-color: #3a3a3a;
+  color: #f0f0f0;
+  transition: border-color 0.2s ease;
+}
+
+.param-editor .color-input {
+  width: 140px;
+  padding: 4px;
+  border: 1px solid #4a4a4a;
+  border-radius: 3px;
+  background-color: #3a3a3a;
+  color: #f0f0f0;
+  transition: border-color 0.2s ease;
+}
+
+.number-input:focus, .color-input:focus {
+  outline: none;
+  border-color: #F0059D;
+  box-shadow: 0 0 0 2px rgba(240, 5, 157, 0.2);
+}
+
+.param-editor .color-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 200px;
+}
+
+.param-editor .color-picker input[type="color"] {
+  width: 40px;
+  height: 30px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+select {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid #4a4a4a;
+  border-radius: 3px;
+  background-color: #3a3a3a;
+  color: #f0f0f0;
+  transition: border-color 0.2s ease;
+}
+
+select:focus {
+  outline: none;
+  border-color: #F0059D;
+  box-shadow: 0 0 0 2px rgba(240, 5, 157, 0.2);
+}
+
+select option {
+  background-color: #3a3a3a;
+  color: #f0f0f0;
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid #4a4a4a;
+  border-radius: 3px;
+  background-color: #3a3a3a;
+  color: #f0f0f0;
+  transition: border-color 0.2s ease;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  border-color: #F0059D;
+  box-shadow: 0 0 0 2px rgba(240, 5, 157, 0.2);
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #4a4a4a;
+  transition: 0.4s;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 4px;
+  bottom: 4px;
+  background-color: #d0d0d0;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: #F0059D;
+}
+
+input:disabled + .toggle-slider {
+  background-color: #2a2a2a;
+  cursor: not-allowed;
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(26px);
+  background-color: white;
+}
+
+.reset-button {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 2px 5px;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.reset-button:hover {
+  background-color: #3a3a3a;
+  color: #F0059D;
+}
+
+.reset-button:disabled {
+  color: #555;
+  cursor: not-allowed;
+}
+
+.param-actions {
+  margin-top: 15px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.reset-all-button {
+  background-color: #3a3a3a;
+  border: 1px solid #4a4a4a;
+  border-radius: 3px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #d0d0d0;
+  transition: all 0.2s ease;
+}
+
+.reset-all-button:hover {
+  background-color: #4a4a4a;
+  border-color: #F0059D;
+  color: #f0f0f0;
+}
+
+.reset-all-button:disabled {
+  background-color: #2a2a2a;
+  color: #666;
+  cursor: not-allowed;
+  border-color: #3a3a3a;
+}
+
+.recalculate-button {
+  background-color: #4a4a4a;
+  border: 1px solid #5a5a5a;
+  border-radius: 3px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #e0e0e0;
+  transition: all 0.2s ease;
+}
+
+.recalculate-button:hover {
+  background-color: #5a5a5a;
+  border-color: #00BFFF;
+  color: #f0f0f0;
+}
+
+.recalculate-button:disabled {
+  background-color: #2a2a2a;
+  color: #666;
+  cursor: not-allowed;
+  border-color: #3a3a3a;
+}
+
+/* 選択コンテナのスタイル */
+.select-container {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.select-container select {
+  flex: 1;
+}
+
+/* フォント更新ボタンのスタイル */
+.update-fonts-button {
+  padding: 4px 8px;
+  border: 1px solid #4a4a4a;
+  background-color: #3a3a3a;
+  color: #d0d0d0;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.update-fonts-button:hover:not(:disabled) {
+  background-color: #4a4a4a;
+  border-color: #00BFFF;
+  color: #f0f0f0;
+}
+
+.update-fonts-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -1,0 +1,149 @@
+.debug-video-tab {
+  padding: 15px;
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.debug-video-tab h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 20px;
+  color: #333;
+}
+
+.debug-video-tab .description {
+  margin-bottom: 20px;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.video-preview-section {
+  margin-bottom: 20px;
+}
+
+.video-preview-section h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #444;
+}
+
+.video-preview-container {
+  background-color: #222;
+  border-radius: 4px;
+  width: 100%;
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.debug-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 10px;
+}
+
+.debug-button {
+  padding: 12px 24px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  min-width: 200px;
+}
+
+.debug-button.batch-test {
+  background-color: #2196F3;
+}
+
+.debug-button.batch-test:hover {
+  background-color: #1976D2;
+}
+
+.debug-button:hover {
+  background-color: #45a049;
+}
+
+.debug-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.debug-button.exporting {
+  background-color: #ff9800;
+}
+
+.export-progress {
+  display: flex;
+  align-items: center;
+  margin-top: 16px;
+  color: #666;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: #ff9800;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 10px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.log-container {
+  margin-top: 20px;
+  flex: 1;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.log-container h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #444;
+}
+
+.log-messages {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px;
+  font-family: monospace;
+  font-size: 12px;
+  overflow-y: auto;
+  flex: 1;
+  max-height: 200px;
+}
+
+.log-message {
+  margin-bottom: 4px;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.log-message.error {
+  color: #d32f2f;
+}
+
+.no-logs {
+  color: #999;
+  text-align: center;
+  padding: 20px;
+}

@@ -1,0 +1,34 @@
+.preview-area-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1a1a1a;
+  position: relative;
+  overflow: hidden;
+}
+
+.canvas-container-wrapper {
+  width: 640px;
+  height: 640px;
+  position: relative;
+  background-color: #2a2a2a;
+  border: 1px solid #333;
+  overflow: hidden;
+}
+
+#canvasContainer {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background-color: transparent;
+}
+
+/* PIXIキャンバスの中央配置用 */
+#canvasContainer canvas {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}

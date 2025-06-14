@@ -1,0 +1,79 @@
+.aspect-ratio-selector {
+  padding: 16px;
+  background-color: #2a2a2a;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.selector-section {
+  margin-bottom: 16px;
+}
+
+.selector-section label {
+  display: block;
+  color: #999;
+  font-size: 12px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ratio-buttons,
+.orientation-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.ratio-button,
+.orientation-button {
+  padding: 8px 16px;
+  border: 1px solid #444;
+  background-color: #333;
+  color: #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.orientation-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-direction: column;
+  padding: 12px 16px;
+}
+
+.orientation-button svg {
+  display: block;
+}
+
+.ratio-button:hover,
+.orientation-button:hover {
+  background-color: #3a3a3a;
+  border-color: #555;
+}
+
+.ratio-button.active,
+.orientation-button.active {
+  background-color: #4a90e2;
+  color: white;
+  border-color: #4a90e2;
+}
+
+.current-settings {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #444;
+  font-size: 14px;
+  color: #ccc;
+}
+
+.settings-label {
+  color: #999;
+}
+
+.settings-value {
+  font-weight: 500;
+  color: #4a90e2;
+}
