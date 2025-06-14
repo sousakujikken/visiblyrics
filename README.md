@@ -43,17 +43,19 @@ npm run build
 
 ### 開発モードでの起動
 
+開発時は以下の2つのコマンドを**それぞれ別のターミナル**で実行します：
+
+1. **開発用ビルドプロセスの起動**
 ```bash
 npm run dev
 ```
+このコマンドでRenderer（UI）とMain（Electron）プロセスのビルドが並行実行されます。
 
-このコマンドでRenderer（UI）とMain（Electron）プロセスの両方が起動し、開発用のElectronアプリケーションが起動します。
-
-### Electronアプリケーションの起動
-
+2. **Electronアプリケーションの起動**
 ```bash
 npm run electron
 ```
+別のターミナルでこのコマンドを実行してElectronアプリケーションを起動します。
 
 ### アプリケーションのパッケージ化
 
