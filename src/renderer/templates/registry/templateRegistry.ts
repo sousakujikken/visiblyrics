@@ -25,6 +25,11 @@ export const templateRegistry: TemplateRegistryEntry[] = [
     id: 'wordslidetext',
     name: '単語スライドテキスト',
     template: templates.WordSlideText
+  },
+  {
+    id: 'flickerfadetemplate',
+    name: '点滅フェードテキスト',
+    template: templates.FlickerFadeTemplate
   }
 ];
 
