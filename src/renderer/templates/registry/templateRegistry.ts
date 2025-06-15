@@ -30,11 +30,6 @@ export const templateRegistry: TemplateRegistryEntry[] = [
     id: 'flickerfadetemplate',
     name: '点滅フェードテキスト',
     template: templates.FlickerFadeTemplate
-  },
-  {
-    id: 'flickerfadetemplate2',
-    name: '点滅フェードテキスト2',
-    template: templates.FlickerFadeTemplate2
   }
 ];
 
