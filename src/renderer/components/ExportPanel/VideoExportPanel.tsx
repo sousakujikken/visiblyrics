@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 import { Engine } from '../../engine/Engine';
 import { ASPECT_RATIO_RESOLUTIONS, ResolutionManager } from '../../export/video/ResolutionManager';
@@ -27,8 +27,23 @@ const VideoExportPanel: React.FC<VideoExportPanelProps> = ({ engine, onClose }) 
   
   // 共通状態
   const [fps, setFps] = useState<30 | 60>(30);
+  const [useCustomRange, setUseCustomRange] = useState(false);
   const [startTime, setStartTime] = useState(0);
   const [endTime, setEndTime] = useState(60000);
+  
+  // 入力フィールドの生の値を保持（入力中の値を保持するため）
+  const [startTimeInput, setStartTimeInput] = useState('00:00.000');
+  const [endTimeInput, setEndTimeInput] = useState('03:12.500');
+  
+  // startTimeの変更を監視
+  useEffect(() => {
+    console.log('🎬 startTime changed to:', startTime);
+  }, [startTime]);
+  
+  // endTimeの変更を監視
+  useEffect(() => {
+    console.log('🎬 endTime changed to:', endTime);
+  }, [endTime]);
   // const [filename, setFilename] = useState('animation_export.mp4'); // 廃止：システムダイアログで設定
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -42,9 +57,28 @@ const VideoExportPanel: React.FC<VideoExportPanelProps> = ({ engine, onClose }) 
 
   // 楽曲の長さをエンジンから取得し、推奨設定を計算
   useEffect(() => {
+    console.log('🔄 useEffect triggered - Dependencies:', { 
+      engine: !!engine, 
+      quality, 
+      customResolution, 
+      fps, 
+      useCustomRange,
+      currentStartTime: startTime,
+      currentEndTime: endTime
+    });
+    
     if (engine) {
       const duration = engine.getMaxTime();
-      setEndTime(duration);
+      console.log('📊 Engine duration:', duration, 'Current endTime:', endTime);
+      
+      // 初期化時のみendTimeを設定
+      if (endTime === 60000) {
+        console.log('🎯 Setting initial endTime to duration:', duration);
+        setEndTime(duration);
+        setEndTimeInput(formatTime(duration));
+      } else {
+        console.log('⏭️ Skipping endTime update (not initial value)');
+      }
       
       // 推奨バッチ設定を計算
       const options: ModernVideoExportOptions = {
@@ -55,8 +89,8 @@ const VideoExportPanel: React.FC<VideoExportPanelProps> = ({ engine, onClose }) 
         videoQuality,
         fps,
         fileName: 'animation_export.mp4', // 一時的なファイル名（実際の出力では使用されない）
-        startTime,
-        endTime: duration,
+        startTime: useCustomRange ? startTime : 0,
+        endTime: useCustomRange ? endTime : duration,
         includeDebugVisuals
       };
       
@@ -68,10 +102,10 @@ const VideoExportPanel: React.FC<VideoExportPanelProps> = ({ engine, onClose }) 
       // const memoryEstimate = engine.videoExporter.getMemoryEstimate(options);
       // setBatchSize(memoryEstimate.recommendedBatchSize);
     }
-  }, [engine, quality, customResolution, fps, startTime, endTime]);
+  }, [engine, quality, customResolution, fps, useCustomRange]);
 
   // アスペクト比に対応する解像度オプションを取得
-  const getAvailableResolutions = () => {
+  const getAvailableResolutions = useCallback(() => {
     const resolutions = ASPECT_RATIO_RESOLUTIONS[stageConfig.aspectRatio][stageConfig.orientation];
     return Object.entries(resolutions)
       .filter(([key]) => key !== 'CUSTOM')
@@ -80,15 +114,15 @@ const VideoExportPanel: React.FC<VideoExportPanelProps> = ({ engine, onClose }) 
         label: value.label,
         ...value
       }));
-  };
+  }, [stageConfig.aspectRatio, stageConfig.orientation]);
 
   // 現在の設定での解像度を取得
-  const getCurrentResolution = () => {
+  const getCurrentResolution = useCallback(() => {
     if (quality === 'CUSTOM') {
       return customResolution;
     }
     return ASPECT_RATIO_RESOLUTIONS[stageConfig.aspectRatio][stageConfig.orientation][quality];
-  };
+  }, [quality, customResolution, stageConfig.aspectRatio, stageConfig.orientation]);
 
   // デバッグ用の3秒動画出力ハンドラ
   const handleExportDebug3Seconds = async () => {
@@ -191,8 +225,8 @@ const VideoExportPanel: React.FC<VideoExportPanelProps> = ({ engine, onClose }) 
         videoQuality,
         fps,
         fileName: fileName,
-        startTime,
-        endTime,
+        startTime: useCustomRange ? startTime : 0,
+        endTime: useCustomRange ? endTime : engine.getMaxTime(),
         includeDebugVisuals,
         outputPath: filePath // フルパスを追加
       };
@@ -218,29 +252,90 @@ const VideoExportPanel: React.FC<VideoExportPanelProps> = ({ engine, onClose }) 
   };
 
   // 時間を人間が読める形式に変換 (ミリ秒 → MM:SS.mmm)
-  const formatTime = (ms: number): string => {
+  const formatTime = useCallback((ms: number): string => {
+    console.log('📝 formatTime called with:', ms);
     const totalSec = ms / 1000;
     const minutes = Math.floor(totalSec / 60);
     const seconds = Math.floor(totalSec % 60);
     const millis = Math.floor((totalSec % 1) * 1000);
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${millis.toString().padStart(3, '0')}`;
-  };
+    const result = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${millis.toString().padStart(3, '0')}`;
+    console.log('📝 formatTime result:', result);
+    return result;
+  }, []);
 
   // 人間が読める形式から時間に変換 (MM:SS.mmm → ミリ秒)
-  const parseTime = (timeStr: string): number => {
+  const parseTime = useCallback((timeStr: string): { value: number; isValid: boolean } => {
+    console.log('🔍 parseTime called with:', timeStr);
     const parts = timeStr.split(':');
-    if (parts.length !== 2) return 0;
+    if (parts.length !== 2) {
+      console.log('🔍 parseTime invalid format (no colon)');
+      return { value: 0, isValid: false };
+    }
     
     const secParts = parts[1].split('.');
-    const minutes = parseInt(parts[0], 10) || 0;
-    const seconds = parseInt(secParts[0], 10) || 0;
-    const millis = parseInt(secParts[1], 10) || 0;
+    if (secParts.length !== 2) {
+      console.log('🔍 parseTime invalid format (no dot in seconds)');
+      return { value: 0, isValid: false };
+    }
     
-    return (minutes * 60 * 1000) + (seconds * 1000) + millis;
-  };
+    const minutes = parseInt(parts[0], 10);
+    const seconds = parseInt(secParts[0], 10);
+    const millis = parseInt(secParts[1], 10);
+    
+    // 有効性チェック
+    if (isNaN(minutes) || isNaN(seconds) || isNaN(millis)) {
+      console.log('🔍 parseTime invalid values (NaN detected)');
+      return { value: 0, isValid: false };
+    }
+    
+    if (seconds >= 60 || millis >= 1000) {
+      console.log('🔍 parseTime invalid range (seconds >= 60 or millis >= 1000)');
+      return { value: 0, isValid: false };
+    }
+    
+    const result = (minutes * 60 * 1000) + (seconds * 1000) + millis;
+    console.log('🔍 parseTime result:', result, 'isValid: true');
+    return { value: result, isValid: true };
+  }, []);
+
+  // 開始時間変更ハンドラー
+  const handleStartTimeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    console.log('⏰ Start time input changed:', value, 'Current startTime:', startTime);
+    
+    // 入力フィールドの値を常に更新
+    setStartTimeInput(value);
+    
+    // 有効な値の場合のみ実際のstateを更新
+    const parsed = parseTime(value);
+    if (parsed.isValid) {
+      console.log('⏰ Setting new startTime:', parsed.value);
+      setStartTime(parsed.value);
+    } else {
+      console.log('⏰ Invalid input, keeping current startTime:', startTime);
+    }
+  }, [parseTime, startTime]);
+
+  // 終了時間変更ハンドラー
+  const handleEndTimeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    console.log('⏰ End time input changed:', value, 'Current endTime:', endTime);
+    
+    // 入力フィールドの値を常に更新
+    setEndTimeInput(value);
+    
+    // 有効な値の場合のみ実際のstateを更新
+    const parsed = parseTime(value);
+    if (parsed.isValid) {
+      console.log('⏰ Setting new endTime:', parsed.value);
+      setEndTime(parsed.value);
+    } else {
+      console.log('⏰ Invalid input, keeping current endTime:', endTime);
+    }
+  }, [parseTime, endTime]);
 
   // 予測ファイルサイズの計算
-  const calculateEstimatedFileSize = (): string => {
+  const calculateEstimatedFileSize = useCallback((): string => {
     const currentRes = getCurrentResolution();
     const pixels = currentRes.width * currentRes.height;
     
@@ -250,7 +345,7 @@ const VideoExportPanel: React.FC<VideoExportPanelProps> = ({ engine, onClose }) 
     
     const pixelMultiplier = pixels / basePixels;
     const fpsMultiplier = fps / 30;
-    const durationSec = (endTime - startTime) / 1000;
+    const durationSec = useCustomRange ? (endTime - startTime) / 1000 : engine.getMaxTime() / 1000;
     
     const estimatedSize = baseSize * pixelMultiplier * fpsMultiplier * durationSec;
     
@@ -259,12 +354,12 @@ const VideoExportPanel: React.FC<VideoExportPanelProps> = ({ engine, onClose }) 
     } else {
       return `${Math.round(estimatedSize / 100) / 10} GB`;
     }
-  };
+  }, [getCurrentResolution, fps, useCustomRange, endTime, startTime, engine]);
 
   // カスタム解像度のバリデーション
-  const validateCustomResolution = (width: number, height: number): string | null => {
+  const validateCustomResolution = useCallback((width: number, height: number): string | null => {
     return resolutionManager.validateCustomResolutionSafe(width, height);
-  };
+  }, [resolutionManager]);
 
   return (
     <div className="video-export-panel">
@@ -392,30 +487,46 @@ const VideoExportPanel: React.FC<VideoExportPanelProps> = ({ engine, onClose }) 
 
         <div className="export-setting-group">
           <h3>出力範囲</h3>
-          <div className="input-group">
-            <label>開始時間:</label>
+          
+          <div className="input-group checkbox">
             <input
-              type="text"
-              value={formatTime(startTime)}
-              onChange={(e) => setStartTime(parseTime(e.target.value))}
-              placeholder="00:00.000"
+              type="checkbox"
+              id="custom-range"
+              checked={useCustomRange}
+              onChange={(e) => setUseCustomRange(e.target.checked)}
               disabled={isExporting}
             />
+            <label htmlFor="custom-range">選択区間を出力</label>
           </div>
+          
+          {useCustomRange && (
+            <>
+              <div className="input-group">
+                <label>開始時間:</label>
+                <input
+                  type="text"
+                  value={startTimeInput}
+                  onChange={handleStartTimeChange}
+                  placeholder="00:00.000"
+                  disabled={isExporting}
+                />
+              </div>
+
+              <div className="input-group">
+                <label>終了時間:</label>
+                <input
+                  type="text"
+                  value={endTimeInput}
+                  onChange={handleEndTimeChange}
+                  placeholder="00:00.000"
+                  disabled={isExporting}
+                />
+              </div>
+            </>
+          )}
 
           <div className="input-group">
-            <label>終了時間:</label>
-            <input
-              type="text"
-              value={formatTime(endTime)}
-              onChange={(e) => setEndTime(parseTime(e.target.value))}
-              placeholder="00:00.000"
-              disabled={isExporting}
-            />
-          </div>
-
-          <div className="input-group">
-            <label>出力時間: {formatTime(endTime - startTime)}</label>
+            <label>出力時間: {formatTime(useCustomRange ? (endTime - startTime) : engine.getMaxTime())}</label>
           </div>
         </div>
 
