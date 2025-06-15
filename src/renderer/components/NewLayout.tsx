@@ -76,6 +76,9 @@ const NewLayout: React.FC<NewLayoutProps> = ({
   const [zoomLevel, setZoomLevel] = useState(2); // 初期値を60秒表示に設定
   const [viewStart, setViewStart] = useState(0); // 表示開始時間
   
+  // 歌詞編集モードの状態
+  const [lyricsEditMode, setLyricsEditMode] = useState(false);
+  
   // 現在のズームレベルでの表示範囲、ただしdurationを超えない
   const viewDuration = Math.min(ZOOM_LEVELS[zoomLevel], totalDuration);
   const viewEnd = Math.min(viewStart + viewDuration, totalDuration);
@@ -164,7 +167,11 @@ const NewLayout: React.FC<NewLayoutProps> = ({
         {/* 上段エリア */}
         <section className="top-area">
           <div className="preview-area">
-            <PreviewArea engine={engine} />
+            <PreviewArea 
+              engine={engine} 
+              lyricsEditMode={lyricsEditMode}
+              onCloseLyricsEdit={() => setLyricsEditMode(false)}
+            />
           </div>
           <div className="sidepanel-area">
             {/* タブ切り替え実装：背景・保存タブ追加 */}
@@ -177,7 +184,11 @@ const NewLayout: React.FC<NewLayoutProps> = ({
                   engine={engine}
                   template={template}
                 />,
-                <LyricsPanel key="lyrics-panel" engine={engine} />,
+                <LyricsPanel 
+                  key="lyrics-panel" 
+                  engine={engine} 
+                  onLyricsEditModeToggle={() => setLyricsEditMode(true)}
+                />,
                 <MusicPanel key="music-panel" engine={engine} />,
                 <BackgroundTab key="background-tab" engine={engine} />,
                 <SaveTab key="save-tab" engine={engine!} />,

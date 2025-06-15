@@ -3,6 +3,7 @@ import { ProjectState } from '../engine/ProjectStateManager';
 import { unifiedFileManager } from './UnifiedFileManager';
 import { Engine } from '../engine/Engine';
 import { DebugEventBus } from '../utils/DebugEventBus';
+import { calculateCharacterIndices } from '../utils/characterIndexCalculator';
 
 // プロジェクトファイルのメタデータ
 export interface ProjectMetadata {
@@ -66,15 +67,18 @@ export class ProjectFileManager {
       throw new Error(`無効なプロジェクトファイル: ${validation.errors.join(', ')}`);
     }
     
+    // 文字インデックスを計算
+    const lyricsWithIndices = calculateCharacterIndices(projectData.lyricsData);
+    
     // エンジンに歌詞データを設定
-    this.engine.loadLyrics(projectData.lyricsData);
+    this.engine.loadLyrics(lyricsWithIndices);
     
     // グローバルテンプレートIDを取得（後方互換性対応）
     const globalTemplateId = projectData.globalTemplateId || projectData.defaultTemplateId || 'FadeSlideText';
     
     // プロジェクト状態を復元
     const state: Partial<ProjectState> = {
-      lyricsData: projectData.lyricsData,
+      lyricsData: lyricsWithIndices,
       defaultTemplateId: globalTemplateId,
       globalParams: projectData.globalParams,
       templateAssignments: {},  // 新しい形式ではobjectParamsにtemplateIdが含まれる
@@ -181,15 +185,18 @@ export class ProjectFileManager {
         throw new Error(`無効なプロジェクトファイル: ${validation.errors.join(', ')}`);
       }
       
+      // 文字インデックスを計算
+      const lyricsWithIndices = calculateCharacterIndices(projectData.lyricsData);
+      
       // エンジンに歌詞データを設定
-      this.engine.loadLyrics(projectData.lyricsData);
+      this.engine.loadLyrics(lyricsWithIndices);
       
       // グローバルテンプレートIDを取得（後方互換性対応）
       const globalTemplateId = projectData.globalTemplateId || projectData.defaultTemplateId || 'FadeSlideText';
       
       // プロジェクト状態を復元
       const state: Partial<ProjectState> = {
-        lyricsData: projectData.lyricsData,
+        lyricsData: lyricsWithIndices,
         defaultTemplateId: globalTemplateId,
         globalParams: projectData.globalParams,
         templateAssignments: {},  // 新しい形式ではobjectParamsにtemplateIdが含まれる
@@ -316,6 +323,19 @@ export class ProjectFileManager {
    */
   private buildProjectData(projectName: string): ProjectFileData {
     const state = this.engine.getStateManager().exportFullState();
+    console.log('ProjectFileManager: buildProjectData - 取得した状態', {
+      lyricsDataLength: state.lyricsData?.length,
+      lyricsDataSample: state.lyricsData?.slice(0, 1), // 最初のフレーズだけ表示
+      timestamp: state.timestamp
+    });
+    
+    // Engineから直接歌詞データも取得して比較
+    const engineLyrics = this.engine.getTimelineData().lyrics;
+    console.log('ProjectFileManager: Engine直接取得の歌詞データ', {
+      engineLyricsLength: engineLyrics?.length,
+      engineLyricsSample: engineLyrics?.slice(0, 1)
+    });
+    
     const now = new Date().toISOString();
     const templateManager = this.engine.getTemplateManager();
     const globalTemplateId = templateManager.getDefaultTemplateId();
@@ -379,7 +399,7 @@ export class ProjectFileManager {
         fileName: state.audioFileName || '',
         duration: state.audioFileDuration || 0
       },
-      lyricsData: state.lyricsData || [],
+      lyricsData: engineLyrics || state.lyricsData || [], // Engineから直接取得を優先
       globalTemplateId: globalTemplateId,
       globalParams: state.globalParams,
       objectParams: enhancedObjectParams,
@@ -418,6 +438,13 @@ export class ProjectFileManager {
    */
   validateProjectData(data: any): ValidationResult {
     const errors: string[] = [];
+    
+    console.log('ProjectFileManager: プロジェクトデータの検証開始', {
+      hasData: !!data,
+      version: data?.version,
+      lyricsDataLength: data?.lyricsData?.length,
+      keys: data ? Object.keys(data) : []
+    });
     
     // 必須フィールドのチェック（必要最小限に緩和）
     if (!data.version) {
@@ -470,25 +497,99 @@ export class ProjectFileManager {
       console.warn(`ProjectFileManager: バージョン ${data.version} は想定バージョンと異なりますが、読み込みを継続します`);
     }
     
-    // 歌詞データの検証（正しいフィールド名を使用）
+    // 歌詞データの検証（新しいフィールド名に対応）
     if (data.lyricsData && Array.isArray(data.lyricsData)) {
       for (const phrase of data.lyricsData) {
-        if (!phrase.id || !phrase.text || typeof phrase.inTime !== 'number' || typeof phrase.outTime !== 'number') {
+        // 新しいフィールド名（phrase, start, end）を基準として検証
+        const hasNewFormat = phrase.phrase && typeof phrase.start === 'number' && typeof phrase.end === 'number';
+        const hasOldFormat = phrase.text && typeof phrase.inTime === 'number' && typeof phrase.outTime === 'number';
+        
+        if (!phrase.id || (!hasNewFormat && !hasOldFormat)) {
           console.warn(`ProjectFileManager: 不正なフレーズデータを検出: ${phrase.id || 'unknown'}. 修正を試みます`);
           
           // データ修正の試み
           if (!phrase.id) phrase.id = `phrase_${Date.now()}`;
-          if (!phrase.text) phrase.text = phrase.phrase || 'テキストなし'; // 旧形式への対応
-          if (typeof phrase.inTime !== 'number') phrase.inTime = phrase.start || 0; // 旧形式への対応
-          if (typeof phrase.outTime !== 'number') phrase.outTime = phrase.end || 1000; // 旧形式への対応
+          
+          // 新しい形式への統一（phrase, start, end）
+          if (!phrase.phrase) {
+            phrase.phrase = phrase.text || 'テキストなし'; // 旧形式から変換
+          }
+          if (typeof phrase.start !== 'number') {
+            phrase.start = phrase.inTime || 0; // 旧形式から変換
+          }
+          if (typeof phrase.end !== 'number') {
+            phrase.end = phrase.outTime || 1000; // 旧形式から変換
+          }
+          
+          // 旧形式フィールドを削除（データクリーンアップ）
+          delete phrase.text;
+          delete phrase.inTime;
+          delete phrase.outTime;
+        } else if (hasOldFormat && !hasNewFormat) {
+          // 旧形式のデータを新しい形式に変換
+          console.log(`ProjectFileManager: 旧形式データを新形式に変換: ${phrase.id}`);
+          phrase.phrase = phrase.text;
+          phrase.start = phrase.inTime;
+          phrase.end = phrase.outTime;
+          
+          // 旧形式フィールドを削除
+          delete phrase.text;
+          delete phrase.inTime;
+          delete phrase.outTime;
+        }
+        
+        // WordUnitとCharUnitの構造も検証
+        if (phrase.words && Array.isArray(phrase.words)) {
+          for (const word of phrase.words) {
+            // WordUnitの新形式検証
+            if (!word.id || !word.word || typeof word.start !== 'number' || typeof word.end !== 'number') {
+              console.warn(`ProjectFileManager: 不正な単語データを検出: ${word.id || 'unknown'}. 修正を試みます`);
+              
+              if (!word.id) word.id = `word_${Date.now()}`;
+              if (!word.word) word.word = word.text || 'unknown';
+              if (typeof word.start !== 'number') word.start = word.inTime || 0;
+              if (typeof word.end !== 'number') word.end = word.outTime || 1000;
+              
+              // 旧形式フィールドを削除
+              delete word.text;
+              delete word.inTime;
+              delete word.outTime;
+            }
+            
+            // CharUnitの検証
+            if (word.chars && Array.isArray(word.chars)) {
+              for (const char of word.chars) {
+                if (!char.id || !char.char || typeof char.start !== 'number' || typeof char.end !== 'number') {
+                  console.warn(`ProjectFileManager: 不正な文字データを検出: ${char.id || 'unknown'}. 修正を試みます`);
+                  
+                  if (!char.id) char.id = `char_${Date.now()}`;
+                  if (!char.char) char.char = 'X';
+                  if (typeof char.start !== 'number') char.start = char.inTime || 0;
+                  if (typeof char.end !== 'number') char.end = char.outTime || 1000;
+                  
+                  // 旧形式フィールドを削除
+                  delete char.inTime;
+                  delete char.outTime;
+                }
+              }
+            }
+          }
         }
       }
     }
     
-    return {
+    const result = {
       isValid: errors.length === 0,
       errors
     };
+    
+    console.log('ProjectFileManager: プロジェクトデータの検証完了', {
+      isValid: result.isValid,
+      errorsCount: result.errors.length,
+      errors: result.errors
+    });
+    
+    return result;
   }
 
   /**

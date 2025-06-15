@@ -88,6 +88,11 @@ export class InstanceManager {
 
   // 歌詞フレーズをロードして階層的なコンテナ構造を生成
   loadPhrases(phrases: PhraseUnit[], charPositions: Map<string, { x: number, y: number }>) {
+    console.log('InstanceManager: loadPhrases開始', { 
+      phrasesCount: phrases.length, 
+      charPositionsSize: charPositions.size 
+    });
+    
     // 既存のインスタンスをクリア
     this.clearAllInstances();
     
@@ -124,6 +129,11 @@ export class InstanceManager {
     });
     
     // サマリーログを制限
+    console.log('InstanceManager: loadPhrases完了', {
+      phraseInstancesCount: this.phraseInstances.size,
+      wordInstancesCount: this.wordInstances.size,
+      charInstancesCount: this.charInstances.size
+    });
   }
 
   // フレーズインスタンスを作成
@@ -443,6 +453,14 @@ export class InstanceManager {
 
   // 階層的な更新処理
   update(nowMs: number) {
+    console.log('InstanceManager: update開始', { 
+      currentTime: nowMs,
+      totalInstances: this.instances.size,
+      phraseInstances: this.phraseInstances.size,
+      wordInstances: this.wordInstances.size,
+      charInstances: this.charInstances.size
+    });
+    
     this.activeInstances.clear();
     let activeCount = 0;
     
@@ -495,6 +513,11 @@ export class InstanceManager {
     } catch (error) {
       console.error(`Error during update at ${nowMs}ms:`, error);
     }
+    
+    console.log('InstanceManager: update完了', { 
+      activeInstances: activeCount,
+      activeInstancesSize: this.activeInstances.size
+    });
   }
   
   // インスタンスが表示期間内かどうかを判定

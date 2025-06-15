@@ -32,3 +32,9 @@
   top: 50%;
   transform: translate(-50%, -50%);
 }
+
+/* 歌詞編集ラッパー */
+.lyrics-editor-wrapper {
+  background-color: #1a1a1a;
+  overflow-y: auto;
+}

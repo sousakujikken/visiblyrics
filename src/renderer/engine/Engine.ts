@@ -12,6 +12,7 @@ import { ParameterManager } from './ParameterManager';
 import { ProjectStateManager } from './ProjectStateManager';
 import { calculateStageSize, getDefaultStageConfig } from '../utils/stageCalculator';
 import { persistenceService } from '../services/PersistenceService';
+import { calculateCharacterIndices } from '../utils/characterIndexCalculator';
 
 export class Engine {
   // パラメータカテゴリ分類
@@ -213,10 +214,10 @@ export class Engine {
     console.log('Engine: 歌詞データのロード開始', data);
     
     // まず各オブジェクトに固有のIDが付与されているか確認し、なければ設定する
-    this.phrases = this.ensureUniqueIds(data);
+    const dataWithIds = this.ensureUniqueIds(data);
     
-    // 文字カウント情報を追加
-    this.addCharCountInfo(this.phrases);
+    // 文字インデックスを計算
+    this.phrases = calculateCharacterIndices(dataWithIds);
     
     // 歌詞データから最大時間を計算してaudioDurationを更新
     this.calculateAndSetAudioDuration();
@@ -315,29 +316,8 @@ export class Engine {
   }
   
   // 文字カウント情報を追加する
-  private addCharCountInfo(phrases: PhraseUnit[]): void {
-    phrases.forEach(phrase => {
-      // フレーズ内の総文字数と総単語数を計算
-      const totalWords = phrase.words.length;
-      const totalChars = phrase.words.reduce((sum, word) => sum + word.chars.length, 0);
-      
-      // フレーズ全体での文字インデックスを追跡
-      let charIndex = 0;
-      
-      phrase.words.forEach(word => {
-        word.chars.forEach(char => {
-          // 文字にカウント情報を追加
-          char.charIndex = charIndex;
-          char.totalChars = totalChars;
-          char.totalWords = totalWords;
-          
-          charIndex++;
-        });
-      });
-      
-      console.log(`フレーズ '${phrase.phrase}': 総文字数=${totalChars}, 総単語数=${totalWords}`);
-    });
-  }
+  // 旧メソッドは削除（calculateCharacterIndicesを使用するため）
+  // private addCharCountInfo(phrases: PhraseUnit[]): void { ... }
   
   // 全角判定ヘルパー関数 - 文字コードで判定
   private isFullWidthChar(char: string): boolean {
@@ -464,6 +444,11 @@ export class Engine {
   }
 
   arrangeCharsOnStage() {
+    console.log('Engine: arrangeCharsOnStage開始', { 
+      phrasesCount: this.phrases.length,
+      screenSize: { width: this.app.screen.width, height: this.app.screen.height }
+    });
+    
     const centerX = this.app.screen.width / 2;
     const centerY = this.app.screen.height / 2;
     
@@ -569,6 +554,10 @@ export class Engine {
         // 次の単語のために位置を更新
         currentX += wordWidths[wordIndex] + letterSpacing * 3; // 単語間のスペース
       });
+    });
+    
+    console.log('Engine: arrangeCharsOnStage完了', { 
+      charPositionsSize: this.charPositions.size 
     });
   }
 
@@ -849,6 +838,12 @@ export class Engine {
   
   // マーカー操作の結果を反映するメソッド（Undo対応）
   updateLyricsData(updatedLyrics: PhraseUnit[], saveState: boolean = true, changeType: string = '歌詞タイミング変更') {
+    console.log('Engine: updateLyricsData呼び出し開始', { 
+      changeType, 
+      phrasesCount: updatedLyrics.length,
+      currentTime: this.currentTime 
+    });
+    
     // 状態保存（Undo操作時はスキップ）
     if (saveState) {
       // 変更前の状態を保存
@@ -863,19 +858,31 @@ export class Engine {
       this.projectStateManager.saveBeforeLyricsChange(changeType);
     }
     
-    // updateLyricsDataログを制限
-    this.phrases = updatedLyrics;
+    // 文字インデックスを計算してから更新
+    this.phrases = calculateCharacterIndices(updatedLyrics);
+    console.log('Engine: 歌詞データ更新完了（文字インデックス再計算済み）、位置再計算開始');
     
     // 更新された歌詞データでインスタンスマネージャーを更新
     this.charPositions.clear();
     this.arrangeCharsOnStage(); // 位置情報を再計算
+    console.log('Engine: 位置計算完了、インスタンス再読み込み開始');
+    
     this.instanceManager.loadPhrases(this.phrases, this.charPositions);
+    console.log('Engine: インスタンス読み込み完了、アニメーション更新開始');
     
     // 現在の時間位置でアニメーションを更新
     this.instanceManager.update(this.currentTime);
+    console.log('Engine: アニメーション更新完了、イベント発火');
     
     // タイムライン更新イベント発火
     this.dispatchTimelineUpdatedEvent();
+    
+    // 新しい歌詞データをProjectStateManagerの現在状態に反映
+    console.log('Engine: ProjectStateManagerに新しい歌詞データを反映');
+    this.projectStateManager.updateCurrentState({
+      lyricsData: JSON.parse(JSON.stringify(this.phrases))
+    });
+    console.log('Engine: updateLyricsData処理完了');
     
     return this.phrases;
   }
@@ -1149,6 +1156,11 @@ export class Engine {
   public dispatchTimelineUpdatedEvent() {
     // タイムラインイベントログを制限
     try {
+      console.log('Engine: timeline-updatedイベント発火開始', {
+        phrasesCount: this.phrases.length,
+        currentTime: this.currentTime
+      });
+      
       const event = new CustomEvent('timeline-updated', {
         detail: { 
           lyrics: JSON.parse(JSON.stringify(this.phrases)), // ディープコピーで確実に新しいオブジェクトを渡す
@@ -1156,6 +1168,7 @@ export class Engine {
         }
       });
       window.dispatchEvent(event);
+      console.log('Engine: timeline-updatedイベント発火完了');
       
       // マーカー関連データが更新されたのでアニメーションも更新
       this.instanceManager.update(this.currentTime);
