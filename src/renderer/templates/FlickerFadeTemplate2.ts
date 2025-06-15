@@ -1,5 +1,4 @@
 import * as PIXI from 'pixi.js';
-import { AdvancedBloomFilter } from '@pixi/filter-advanced-bloom';
 import { IAnimationTemplate, HierarchyType, AnimationPhase, TemplateMetadata } from '../types/types';
 import { FontService } from '../services/FontService';
 
@@ -12,13 +11,6 @@ import { FontService } from '../services/FontService';
  */
 function easeInOutQuad(t: number): number {
   return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-}
-
-/**
- * 三次イージング（アウト）：早い→遅い
- */
-function easeOutCubic(t: number): number {
-  return 1 - Math.pow(1 - t, 3);
 }
 
 /**
@@ -60,24 +52,21 @@ function calculatePhraseWidth(text: string, fontSize: number, charSpacing: numbe
   return totalWidth;
 }
 
-
 /**
- * FlickerFade テンプレート
- * フレーズ全体を画面中心に配置し、複数フレーズが近接する場合はY座標をシフト
- * 文字がランダムに点滅しながらフェードイン/アウトするエフェクト
- * 完全表示状態では点滅を停止し、動的周波数制御により滑らかな変化を実現
+ * FlickerFadeTemplate2 - 点滅フェードテキスト（改良版）
+ * MultiLineTextベースの多段配置システムに点滅フェード効果を組み合わせ
  */
-export const FlickerFadeTemplate: IAnimationTemplate = {
+export const FlickerFadeTemplate2: IAnimationTemplate = {
   // テンプレートメタデータ
   metadata: {
-    name: "FlickerFadeTemplate",
-    version: "1.0.0",
-    description: "フレーズ全体を画面中心に配置し、文字がランダムに点滅しながらフェードイン/アウトするテンプレート。動的周波数制御と完全表示状態での点滅停止機能を提供します。",
+    name: "FlickerFadeTemplate2",
+    version: "2.0.0",
+    description: "多段配置システムを持つ点滅フェードテキストテンプレート。MultiLineTextをベースに点滅フェード効果を追加。",
     license: "CC-BY-4.0",
     licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
     originalAuthor: {
-      name: "Claude AI Assistant",
-      contribution: "FlickerFadeTemplateの初期実装",
+      name: "Sousakujikken_HIRO",
+      contribution: "FlickerFadeTemplate2の作成",
       date: "2025-06-15"
     },
     contributors: []
@@ -97,22 +86,20 @@ export const FlickerFadeTemplate: IAnimationTemplate = {
         }
       },
       
-      // 色設定
-      { name: "defaultTextColor", type: "color", default: "#808080" },
-      { name: "activeTextColor", type: "color", default: "#FFFF80" },
-      { name: "completedTextColor", type: "color", default: "#FFF7EB" },
-      
-      // 段構成設定（MultiLineTextベース）
+      // 段構成設定
       { name: "totalLines", type: "number", default: 4, min: 2, max: 8, step: 1 },
-      { name: "lineSpacing", type: "number", default: 150, min: 50, max: 400, step: 10 },
+      { name: "lineSpacing", type: "number", default: 120, min: 50, max: 200, step: 10 },
       { name: "resetInterval", type: "number", default: 2000, min: 500, max: 5000, step: 100 },
       
       // 手動段指定（-1で自動割り当て、0以上で指定段）
       { name: "manualLineNumber", type: "number", default: -1, min: -1, max: 7, step: 1 },
       
-      // フレーズ配置設定（後方互換性のため保持）
-      { name: "phraseOverlapThreshold", type: "number", default: 1000, min: 0, max: 5000, step: 100 },
-      { name: "lineHeight", type: "number", default: 150, min: 50, max: 400, step: 10 },
+      // 文字色設定
+      { name: "defaultTextColor", type: "color", default: "#808080" },
+      { name: "activeTextColor", type: "color", default: "#FFFF80" },
+      { name: "completedTextColor", type: "color", default: "#FFF7EB" },
+      
+      // フレーズオフセット
       { name: "phraseOffsetX", type: "number", default: 0, min: -500, max: 500, step: 10 },
       { name: "phraseOffsetY", type: "number", default: 0, min: -500, max: 500, step: 10 },
       
@@ -124,6 +111,10 @@ export const FlickerFadeTemplate: IAnimationTemplate = {
       { name: "flickerRandomness", type: "number", default: 0.7, min: 0, max: 1, step: 0.1 },
       { name: "frequencyLerpSpeed", type: "number", default: 0.15, min: 0.01, max: 1, step: 0.01 },
       
+      // フレーズ単位フェードイン制御
+      { name: "phraseBasedFadeIn", type: "boolean", default: true },
+      { name: "charInRandomVariation", type: "number", default: 300, min: 0, max: 1000, step: 50 },
+      
       // フェード制御
       { name: "fadeInVariation", type: "number", default: 500, min: 0, max: 2000, step: 50 },
       { name: "fadeOutVariation", type: "number", default: 800, min: 0, max: 2000, step: 50 },
@@ -133,17 +124,11 @@ export const FlickerFadeTemplate: IAnimationTemplate = {
       // 文字間隔
       { name: "charSpacing", type: "number", default: 1.0, min: 0.1, max: 3.0, step: 0.1 },
       
-      // Glowエフェクト設定
-      { name: "enableGlow", type: "boolean", default: true },
-      { name: "glowStrength", type: "number", default: 1.5, min: 0, max: 5, step: 0.1 },
-      { name: "glowBrightness", type: "number", default: 1.2, min: 0.5, max: 3, step: 0.1 },
-      { name: "glowBlur", type: "number", default: 6, min: 0.1, max: 20, step: 0.1 },
-      { name: "glowQuality", type: "number", default: 8, min: 0.1, max: 20, step: 0.1 },
-      { name: "glowPadding", type: "number", default: 50, min: 0, max: 200, step: 10 }
+      // フレーズ重複処理
+      { name: "phraseOverlapThreshold", type: "number", default: 1000, min: 100, max: 3000, step: 100 }
     ];
   },
-
-
+  
   /**
    * 表示要素のみを削除するメソッド
    */
@@ -172,14 +157,14 @@ export const FlickerFadeTemplate: IAnimationTemplate = {
       }
     });
   },
-
+  
   /**
    * 階層対応のアニメーションメソッド
    */
   animateContainer(
     container: PIXI.Container,
     text: string | string[],
-    params: Record<string, unknown>,
+    params: Record<string, any>,
     nowMs: number,
     startMs: number,
     endMs: number,
@@ -187,15 +172,6 @@ export const FlickerFadeTemplate: IAnimationTemplate = {
     phase: AnimationPhase
   ): boolean {
     const textContent = Array.isArray(text) ? text.join('') : text;
-    
-    console.log('[FlickerFadeTemplate] animateContainer called:', {
-      hierarchyType,
-      text: textContent.substring(0, 20) + '...',
-      startMs,
-      endMs,
-      nowMs,
-      phase
-    });
     
     container.visible = true;
     this.removeVisualElements!(container);
@@ -215,163 +191,132 @@ export const FlickerFadeTemplate: IAnimationTemplate = {
     
     return rendered;
   },
-
+  
   /**
-   * フレーズコンテナの描画
-   * 画面中央に配置し、複数フレーズが近接している場合はY座標をシフト
+   * フレーズコンテナの描画（固定位置表示）
    */
   renderPhraseContainer(
     container: PIXI.Container,
     text: string,
-    params: Record<string, unknown>,
+    params: Record<string, any>,
     nowMs: number,
     startMs: number,
     endMs: number,
     phase: AnimationPhase,
-    _hierarchyType: HierarchyType
+    hierarchyType: HierarchyType
   ): boolean {
-    console.log('[FlickerFadeTemplate] renderPhraseContainer called:', {
-      text: text.substring(0, 20) + '...',
-      startMs,
-      endMs,
-      nowMs,
-      phase
-    });
-    // パラメータの取得
-    // 新しい段管理パラメータ（MultiLineTextベース）
-    const totalLines = params.totalLines as number || 4;
-    const lineSpacing = params.lineSpacing as number || 150;
-    const resetInterval = params.resetInterval as number || 2000;
-    const manualLineNumber = params.manualLineNumber as number || -1;
     
-    // 従来のパラメータ（後方互換性のため保持）
-    const phraseOverlapThreshold = params.phraseOverlapThreshold as number || 1000;
-    const lineHeight = params.lineHeight as number || 150;
-    const phraseOffsetX = params.phraseOffsetX as number || 0;
-    const phraseOffsetY = params.phraseOffsetY as number || 0;
-    const fontSize = params.fontSize as number || 120;
-    const charSpacing = params.charSpacing as number || 1.0;
-    const enableGlow = params.enableGlow as boolean ?? true;
-    const glowStrength = params.glowStrength as number || 1.5;
-    const glowBrightness = params.glowBrightness as number || 1.2;
-    const glowBlur = params.glowBlur as number || 6;
-    const glowQuality = params.glowQuality as number || 8;
-    const glowPadding = params.glowPadding as number || 50;
-
+    const totalLines = params.totalLines || 4;
+    const lineSpacing = params.lineSpacing || 120;
+    const resetInterval = params.resetInterval || 2000;
+    const manualLineNumber = params.manualLineNumber || -1;
+    const phraseOffsetX = params.phraseOffsetX || 0;
+    const phraseOffsetY = params.phraseOffsetY || 0;
+    const fontSize = params.fontSize || 120;
+    const charSpacing = params.charSpacing || 1.0;
+    
     // アプリケーションサイズの取得
     const app = (window as any).__PIXI_APP__;
     if (!app || !app.renderer) {
       container.position.set(0, 0);
       return true;
     }
-
+    
     const screenWidth = app.renderer.width;
     const screenHeight = app.renderer.height;
-
-    // フレーズIDの取得
-    const phraseId = params.phraseId as string || params.id as string || `phrase_${startMs}_${text.substring(0, 10)}`;
-
-    // フレーズの総幅を計算
-    const phraseWidth = calculatePhraseWidth(text, fontSize, charSpacing);
-
-    // 適切な行インデックスを決定（MultiLineTextベースの段管理）
-    const lineIndex = this.getOrCalculateLineNumber!(phraseId, params, startMs, endMs, totalLines, resetInterval, manualLineNumber, nowMs);
-
-    // デバッグログ：段ずらし詳細情報（フレーズ初回のみ）
-    const global = (window as any);
-    if (!global.__FLICKERFADE_STATE__) {
-      global.__FLICKERFADE_STATE__ = {
-        phraseLineMap: new Map(),
-        lineHistory: [],
-        usedLines: new Set<number>(),
-        loggedPositioning: new Set<string>()
-      };
-    }
-    const state = global.__FLICKERFADE_STATE__;
-    const isFirstTimeForPhrase = !state.loggedPositioning.has(phraseId);
     
-    if (isFirstTimeForPhrase) {
-      state.loggedPositioning.add(phraseId);
-      
-      const debugBaseCenterY = screenHeight / 2;
-      const debugTotalHeight = (totalLines - 1) * lineSpacing;
-      const debugFirstLineY = debugBaseCenterY - debugTotalHeight / 2;
-      
-      console.log('[FlickerFadeTemplate] Phrase positioning DEBUG (MultiLineText-based):', {
-        phraseId,
-        text: text.substring(0, 20) + '...',
-        lineIndex,
-        totalLines,
-        lineSpacing,
-        baseCenterY: debugBaseCenterY,
-        firstLineY: debugFirstLineY,
-        calculatedY: debugFirstLineY + lineIndex * lineSpacing + phraseOffsetY,
-        startMs,
-        endMs,
-        phase,
-        params: { totalLines, lineSpacing, resetInterval, phraseOffsetY }
-      });
-    }
-
-    // フレーズの基準位置計算（点滅フェードテキスト2と同じ方式）
-    let centerX = (screenWidth - phraseWidth) / 2 + phraseOffsetX;
+    // フレーズの段番号を取得または計算
+    const phraseId = params.id || 'unknown';
+    let lineNumber = this.getOrCalculateLineNumber!(phraseId, params, startMs, endMs, totalLines, resetInterval, manualLineNumber, nowMs);
+    
+    // 固定位置の計算
+    const phraseWidth = calculatePhraseWidth(text, fontSize, charSpacing);
+    const centerX = screenWidth / 2 - phraseWidth / 2 + phraseOffsetX;
     
     // Y座標の計算（画面中央から上下に段を配置）
-    const baseCenterY = screenHeight / 2;
+    const centerY = screenHeight / 2;
     const totalHeight = (totalLines - 1) * lineSpacing;
-    const firstLineY = baseCenterY - totalHeight / 2;
-    let centerY = firstLineY + lineIndex * lineSpacing + phraseOffsetY;
-
-    // Glowエフェクトの適用
-    if (enableGlow) {
-      container.filterArea = new PIXI.Rectangle(
-        -glowPadding,
-        -glowPadding,
-        screenWidth + glowPadding * 2,
-        screenHeight + glowPadding * 2
-      );
-
-      const hasBloomFilter = container.filters && 
-        container.filters.some(filter => filter instanceof AdvancedBloomFilter);
-
-      if (!hasBloomFilter) {
-        const bloomFilter = new AdvancedBloomFilter({
-          threshold: 0.2,
-          bloomScale: glowStrength,
-          brightness: glowBrightness,
-          blur: glowBlur,
-          quality: glowQuality,
-          kernels: null,
-          pixelSize: { x: 1, y: 1 }
-        });
-
-        container.filters = container.filters || [];
-        container.filters.push(bloomFilter);
-      } else {
-        const bloomFilter = container.filters.find(filter => filter instanceof AdvancedBloomFilter) as AdvancedBloomFilter;
-        if (bloomFilter) {
-          bloomFilter.bloomScale = glowStrength;
-          bloomFilter.brightness = glowBrightness;
-          bloomFilter.blur = glowBlur;
-          bloomFilter.quality = glowQuality;
-        }
-      }
-    } else {
-      if (container.filters) {
-        container.filters = container.filters.filter(filter => !(filter instanceof AdvancedBloomFilter));
-        if (container.filters.length === 0) {
-          container.filters = null;
-        }
-      }
-      container.filterArea = null;
-    }
-
-    // フレーズコンテナを配置
-    container.position.set(centerX, centerY);
+    const firstLineY = centerY - totalHeight / 2;
+    const targetY = firstLineY + lineNumber * lineSpacing + phraseOffsetY;
+    
+    // 固定位置に配置
+    container.position.set(centerX, targetY);
     container.alpha = 1.0;
     container.visible = true;
     container.updateTransform();
-
+    
+    // 段番号とフレーズ終了時刻をパラメータとして子に渡す
+    params.currentLineNumber = lineNumber;
+    params.phraseEndMs = endMs;
+    
+    // フレーズ単位フェードイン制御の設定
+    const phraseBasedFadeIn = params.phraseBasedFadeIn ?? true;
+    const charInRandomVariation = params.charInRandomVariation || 300;
+    
+    // フレーズ全体の文字情報を収集してランダム順序を生成
+    if (phraseBasedFadeIn && params.words && Array.isArray(params.words)) {
+      // フレーズの文字インデックス収集
+      const phraseCharIndices: number[] = [];
+      (params.words as any[]).forEach((wordData: any) => {
+        if (wordData.chars && Array.isArray(wordData.chars)) {
+          wordData.chars.forEach((charData: any) => {
+            if (charData.charIndex !== undefined) {
+              phraseCharIndices.push(charData.charIndex);
+            }
+          });
+        }
+      });
+      
+      // フレーズIDを基準にした擬似ランダム順序生成
+      const phraseId = params.id || 'unknown';
+      const phraseStateKey = `phraseCharOrder_${phraseId}`;
+      
+      if (!(container as any)[phraseStateKey] && phraseCharIndices.length > 0) {
+        // フレーズIDベースの擬似ランダム生成器
+        const seedRandom = (seed: string) => {
+          let hash = 0;
+          for (let i = 0; i < seed.length; i++) {
+            const char = seed.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // 32bit integer
+          }
+          let state = Math.abs(hash) + 1;
+          return () => {
+            state = ((state * 1103515245) + 12345) & 0x7fffffff;
+            return state / 0x7fffffff;
+          };
+        };
+        
+        const rng = seedRandom(phraseId);
+        
+        // Fisher-Yates shuffle アルゴリズムで文字順序をシャッフル
+        const shuffledIndices = [...phraseCharIndices];
+        for (let i = shuffledIndices.length - 1; i > 0; i--) {
+          const j = Math.floor(rng() * (i + 1));
+          [shuffledIndices[i], shuffledIndices[j]] = [shuffledIndices[j], shuffledIndices[i]];
+        }
+        
+        // 各文字インデックスに対する出現順序（0から始まる）を生成
+        const charOrderMap = new Map();
+        shuffledIndices.forEach((charIndex, order) => {
+          charOrderMap.set(charIndex, order);
+        });
+        
+        (container as any)[phraseStateKey] = {
+          charOrderMap,
+          totalChars: phraseCharIndices.length
+        };
+      }
+      
+      // ランダム順序情報をパラメータに追加
+      const phraseCharOrder = (container as any)[phraseStateKey];
+      if (phraseCharOrder) {
+        params.phraseCharOrderMap = phraseCharOrder.charOrderMap;
+        params.phraseTotalChars = phraseCharOrder.totalChars;
+        params.phraseStartMs = startMs; // フレーズ開始時刻も渡す
+      }
+    }
+    
     // 単語コンテナの管理
     if (params.words && Array.isArray(params.words)) {
       let cumulativeWidth = 0;
@@ -397,10 +342,8 @@ export const FlickerFadeTemplate: IAnimationTemplate = {
         // 単語の累積幅を計算して位置設定
         const wordWidth = calculatePhraseWidth(wordData.word, fontSize, charSpacing);
         
-        // 単語コンテナにメタデータを保存
-        (wordContainer as any).__wordOffsetX = cumulativeWidth;
-        (wordContainer as any).__wordIndex = index;
-        (wordContainer as any).__totalWords = params.words.length;
+        // 単語コンテナの位置設定
+        wordContainer.position.set(cumulativeWidth, 0);
         
         // 単語アニメーションの適用
         this.animateContainer!(
@@ -411,9 +354,8 @@ export const FlickerFadeTemplate: IAnimationTemplate = {
             id: wordData.id,
             wordIndex: index,
             totalWords: params.words.length,
-            previousWordsWidth: cumulativeWidth,
             chars: wordData.chars,
-            phraseEndMs: endMs  // フレーズの終了時刻を追加
+            phraseEndMs: endMs
           },
           nowMs,
           wordData.start,
@@ -426,98 +368,121 @@ export const FlickerFadeTemplate: IAnimationTemplate = {
         cumulativeWidth += wordWidth;
       });
     }
-
+    
     return true;
   },
-
+  
+  /**
+   * フレーズの段番号を取得または計算（MultiLineTextと同じロジック）
+   */
+  getOrCalculateLineNumber(
+    phraseId: string,
+    params: Record<string, any>,
+    startMs: number,
+    endMs: number,
+    totalLines: number,
+    resetInterval: number,
+    manualLineNumber: number,
+    nowMs: number
+  ): number {
+    // グローバルな段管理システム（FlickerFade2専用）
+    const global = (window as any);
+    if (!global.__FLICKERFADE2_STATE__) {
+      global.__FLICKERFADE2_STATE__ = {
+        lastPhraseEndMs: -1,
+        currentLine: 0,
+        phraseLineMap: new Map(),
+        lineHistory: []
+      };
+    }
+    
+    const state = global.__FLICKERFADE2_STATE__;
+    
+    // 既にこのフレーズの段番号が決まっている場合はそれを返す
+    if (state.phraseLineMap.has(phraseId)) {
+      return state.phraseLineMap.get(phraseId);
+    }
+    
+    // 手動指定がある場合はそれを使用
+    if (manualLineNumber >= 0 && manualLineNumber < totalLines) {
+      state.phraseLineMap.set(phraseId, manualLineNumber);
+      return manualLineNumber;
+    }
+    
+    // 前のフレーズとの間隔をチェック
+    if (state.lastPhraseEndMs !== -1 && 
+        startMs - state.lastPhraseEndMs > resetInterval) {
+      // リセット条件に該当：1段目に戻る
+      state.currentLine = 0;
+    }
+    
+    const lineNumber = state.currentLine % totalLines;
+    
+    // 段番号をキャッシュ
+    state.phraseLineMap.set(phraseId, lineNumber);
+    
+    // 状態更新
+    state.lastPhraseEndMs = endMs;
+    state.currentLine += 1;
+    state.lineHistory.push({
+      phraseId,
+      startMs,
+      endMs,
+      lineNumber,
+      text: params.text || ''
+    });
+    
+    return lineNumber;
+  },
+  
   /**
    * 単語コンテナの描画
-   * 単語間でのX座標連続配置を管理
    */
   renderWordContainer(
     container: PIXI.Container,
     text: string,
-    params: Record<string, unknown>,
+    params: Record<string, any>,
     nowMs: number,
     startMs: number,
     endMs: number,
     phase: AnimationPhase,
-    _hierarchyType: HierarchyType
+    hierarchyType: HierarchyType
   ): boolean {
-    const fontSize = params.fontSize as number || 120;
-    const charSpacing = params.charSpacing as number || 1.0;
-    const enableGlow = params.enableGlow as boolean ?? true;
-    const glowPadding = params.glowPadding as number || 50;
-
-    // デバッグログを削除（段ずらし以外のログを抑制）
-
-    // 単語インデックスと総単語数を取得
-    const wordIndex = params.wordIndex as number || 0;
-    const totalWords = params.totalWords as number || 1;
-
-    // フレーズ内での単語の累積X座標オフセットを計算
-    let wordOffsetX = 0;
     
-    // previousWordsWidthがパラメータで渡されていればそれを使用
-    if (params.previousWordsWidth !== undefined) {
-      wordOffsetX = params.previousWordsWidth as number;
-    }
-
-    // 単語コンテナの基本設定（フレーズ内での位置）
-    container.position.set(wordOffsetX, 0);
-    container.alpha = 1.0;
+    const fontSize = params.fontSize || 120;
+    const charSpacing = params.charSpacing || 1.0;
+    
+    // 単語コンテナは常にローカル座標の原点に配置
+    container.position.set(0, 0);
     container.visible = true;
-
-    // Glowエフェクト用のフィルターエリア設定
-    if (enableGlow) {
-      let totalWidth = 0;
-      for (let i = 0; i < text.length; i++) {
-        const char = text[i];
-        const effectiveSpacing = isHalfWidthChar(char) ? charSpacing * 0.6 : charSpacing;
-        totalWidth += fontSize * effectiveSpacing;
-      }
-      const wordWidth = totalWidth + glowPadding * 2;
-      const wordHeight = fontSize + glowPadding * 2;
-
-      container.filterArea = new PIXI.Rectangle(
-        -glowPadding,
-        -glowPadding,
-        wordWidth,
-        wordHeight
-      );
-    } else {
-      container.filterArea = null;
-    }
-
+    
     // 文字コンテナの管理
     if (params.chars && Array.isArray(params.chars)) {
-      let cumulativeXOffset = 0;
-
-      (params.chars as any[]).forEach((charData: any) => {
+      params.chars.forEach((charData, index) => {
         // 既存の文字コンテナを検索
         let charContainer: PIXI.Container | null = null;
         
-        container.children.forEach((child: any) => {
+        container.children.forEach(child => {
           if (child instanceof PIXI.Container && 
               (child as any).name === `char_container_${charData.id}`) {
             charContainer = child as PIXI.Container;
           }
         });
-
+        
         // 存在しない場合は新規作成
         if (!charContainer) {
           charContainer = new PIXI.Container();
           (charContainer as any).name = `char_container_${charData.id}`;
           container.addChild(charContainer);
         }
-
+        
         // 文字コンテナの位置設定
+        const charIndex = charData.charIndex || 0;
         const char = charData.char;
         const effectiveSpacing = isHalfWidthChar(char) ? charSpacing * 0.6 : charSpacing;
+        const xOffset = charIndex * fontSize * effectiveSpacing;
+        charContainer.position.set(xOffset, 0);
         
-        charContainer.position.set(cumulativeXOffset, 0);
-        cumulativeXOffset += fontSize * effectiveSpacing;
-
         // 文字アニメーションの適用
         this.animateContainer!(
           charContainer,
@@ -527,7 +492,7 @@ export const FlickerFadeTemplate: IAnimationTemplate = {
             id: charData.id,
             charIndex: charData.charIndex,
             totalChars: charData.totalChars,
-            phraseEndMs: params.phraseEndMs  // フレーズの終了時刻を伝達
+            totalWords: charData.totalWords
           },
           nowMs,
           charData.start,
@@ -537,11 +502,10 @@ export const FlickerFadeTemplate: IAnimationTemplate = {
         );
       });
     }
-
-    container.updateTransform();
+    
     return true;
   },
-
+  
   /**
    * 文字コンテナの描画
    * 動的周波数制御による点滅エフェクトと完全表示状態での点滅停止
@@ -549,43 +513,50 @@ export const FlickerFadeTemplate: IAnimationTemplate = {
   renderCharContainer(
     container: PIXI.Container,
     text: string,
-    params: Record<string, unknown>,
+    params: Record<string, any>,
     nowMs: number,
     startMs: number,
     endMs: number,
     phase: AnimationPhase,
-    _hierarchyType: HierarchyType
+    hierarchyType: HierarchyType
   ): boolean {
-    const fontSize = params.fontSize as number || 120;
-    const fontFamily = params.fontFamily as string;
+    const fontSize = params.fontSize || 120;
+    const fontFamily = params.fontFamily;
     if (!fontFamily) {
-      console.error('[FlickerFadeTemplate] fontFamilyパラメータが指定されていません');
+      console.error('[FlickerFadeTemplate2] fontFamilyパラメータが指定されていません');
       return false;
     }
 
     // パラメータの取得
-    const preInDuration = params.preInDuration as number || 1500;
-    const flickerMinFrequency = params.flickerMinFrequency as number || 2;
-    const flickerMaxFrequency = params.flickerMaxFrequency as number || 15;
-    const flickerIntensity = params.flickerIntensity as number || 0.8;
-    const flickerRandomness = params.flickerRandomness as number || 0.7;
-    const frequencyLerpSpeed = params.frequencyLerpSpeed as number || 0.15;
-    const fadeInVariation = params.fadeInVariation as number || 500;
-    const fadeOutVariation = params.fadeOutVariation as number || 800;
-    const fadeOutDuration = params.fadeOutDuration as number || 1000;
-    const fullDisplayThreshold = params.fullDisplayThreshold as number || 0.85;
-    const defaultTextColor = params.defaultTextColor as string || '#808080';
-    const activeTextColor = params.activeTextColor as string || '#FFFF80';
-    const completedTextColor = params.completedTextColor as string || '#FFF7EB';
+    const preInDuration = params.preInDuration || 1500;
+    const flickerMinFrequency = params.flickerMinFrequency || 2;
+    const flickerMaxFrequency = params.flickerMaxFrequency || 15;
+    const flickerIntensity = params.flickerIntensity || 0.8;
+    const flickerRandomness = params.flickerRandomness || 0.7;
+    const frequencyLerpSpeed = params.frequencyLerpSpeed || 0.15;
+    const fadeInVariation = params.fadeInVariation || 500;
+    const fadeOutVariation = params.fadeOutVariation || 800;
+    const fadeOutDuration = params.fadeOutDuration || 1000;
+    const fullDisplayThreshold = params.fullDisplayThreshold || 0.85;
+    const defaultTextColor = params.defaultTextColor || '#808080';
+    const activeTextColor = params.activeTextColor || '#FFFF80';
+    const completedTextColor = params.completedTextColor || '#FFF7EB';
 
-    // フレーズの終了時刻を取得（なければ単語の終了時刻を使用）
-    const phraseEndMs = params.phraseEndMs as number || endMs;
+    // フレーズ単位フェードイン制御の取得
+    const phraseBasedFadeIn = params.phraseBasedFadeIn ?? true;
+    const charInRandomVariation = params.charInRandomVariation || 300;
+    const phraseCharOrderMap = params.phraseCharOrderMap;
+    const phraseTotalChars = params.phraseTotalChars || 1;
+    const phraseStartMs = params.phraseStartMs || startMs;
+
+    // フレーズの終了時刻を取得
+    const phraseEndMs = params.phraseEndMs || endMs;
 
     container.visible = true;
 
     // 文字アニメーション状態の生成/取得
-    const charIndex = params.charIndex as number || 0;
-    const stateKey = `charState_${charIndex}_${phraseEndMs}`;  // フレーズ終了時刻も含めてキーを生成
+    const charIndex = params.charIndex || 0;
+    const stateKey = `charState_${charIndex}_${phraseEndMs}`;
     
     if (!(container as any)[stateKey]) {
       // 擬似ランダム生成器（charIndexベース）
@@ -599,11 +570,28 @@ export const FlickerFadeTemplate: IAnimationTemplate = {
 
       const rng = seedRandom(charIndex);
       
+      let flickerStartTime, flickerDuration;
+      
+      if (phraseBasedFadeIn && phraseCharOrderMap && phraseCharOrderMap.has(charIndex)) {
+        // フレーズ単位フェードイン：全文字が同じタイミングで点滅開始
+        // ランダム順序で少しずつ時差をつけて出現
+        const charOrder = phraseCharOrderMap.get(charIndex) || 0;
+        const orderRatio = charOrder / Math.max(1, phraseTotalChars - 1); // 0-1の範囲
+        const randomDelay = orderRatio * charInRandomVariation; // ランダム順序による時差
+        
+        flickerStartTime = phraseStartMs - preInDuration;
+        flickerDuration = preInDuration + randomDelay;
+      } else {
+        // 従来の文字別個別フェードイン
+        flickerStartTime = startMs - preInDuration + rng() * fadeInVariation * flickerRandomness;
+        flickerDuration = preInDuration + rng() * fadeInVariation;
+      }
+      
       (container as any)[stateKey] = {
-        flickerStartTime: startMs - preInDuration + rng() * fadeInVariation * flickerRandomness,
-        flickerDuration: preInDuration + rng() * fadeInVariation,
-        fadeInCompleteTime: startMs - rng() * fadeInVariation * 0.2,
-        fadeOutStartTime: phraseEndMs - rng() * fadeOutVariation,  // フレーズの終了時刻を基準に
+        flickerStartTime,
+        flickerDuration,
+        fadeInCompleteTime: phraseBasedFadeIn ? phraseStartMs : startMs - rng() * fadeInVariation * 0.2,
+        fadeOutStartTime: phraseEndMs - rng() * fadeOutVariation,
         fadeOutDuration: fadeOutDuration + rng() * fadeOutVariation * 0.5
       } as CharacterAnimationState;
     }
@@ -618,7 +606,7 @@ export const FlickerFadeTemplate: IAnimationTemplate = {
       // 隠れ状態
       currentAlpha = 0;
       textColor = defaultTextColor;
-    } else if (nowMs < startMs) {
+    } else if (nowMs < (phraseBasedFadeIn ? phraseStartMs : startMs)) {
       // フェードイン（点滅）フェーズ
       const elapsed = nowMs - charState.flickerStartTime;
       const progress = Math.min(elapsed / charState.flickerDuration, 1);
@@ -647,9 +635,28 @@ export const FlickerFadeTemplate: IAnimationTemplate = {
       
       textColor = defaultTextColor;
     } else if (nowMs <= phraseEndMs) {
-      // アクティブフェーズ（完全表示）- フレーズ終了時刻まで表示継続
-      currentAlpha = 1.0;
-      textColor = activeTextColor;
+      // アクティブフェーズ（完全表示）
+      // フレーズ単位フェードインの場合は各文字のタイミングを無視してフレーズタイミングで表示
+      if (phraseBasedFadeIn) {
+        // フレーズ単位制御：フレーズが始まったら個別の文字タイミングに関係なく表示
+        if (nowMs >= startMs) {
+          currentAlpha = 1.0;
+          textColor = activeTextColor;
+        } else {
+          // まだ文字のアクティブ時間ではない場合は少し暗めに表示
+          currentAlpha = 0.7;
+          textColor = defaultTextColor;
+        }
+      } else {
+        // 従来の文字別制御：個別の文字タイミングで判定
+        if (nowMs >= startMs && nowMs <= endMs) {
+          currentAlpha = 1.0;
+          textColor = activeTextColor;
+        } else {
+          currentAlpha = 0.7;
+          textColor = defaultTextColor;
+        }
+      }
     } else if (nowMs < charState.fadeOutStartTime + charState.fadeOutDuration) {
       // フェードアウト（点滅）フェーズ
       const elapsed = nowMs - charState.fadeOutStartTime;
@@ -702,73 +709,9 @@ export const FlickerFadeTemplate: IAnimationTemplate = {
     textObj.alpha = currentAlpha;
 
     container.addChild(textObj);
-    container.visible = currentAlpha > 0;
 
     return true;
-  },
-
-  /**
-   * フレーズの段番号を取得または計算（MultiLineTextベース）
-   */
-  getOrCalculateLineNumber(
-    phraseId: string,
-    params: Record<string, any>,
-    startMs: number,
-    endMs: number,
-    totalLines: number,
-    resetInterval: number,
-    manualLineNumber: number,
-    nowMs: number
-  ): number {
-    // グローバルな段管理システム（FlickerFade専用）
-    const global = (window as any);
-    if (!global.__FLICKERFADE_MULTILINE_STATE__) {
-      global.__FLICKERFADE_MULTILINE_STATE__ = {
-        lastPhraseEndMs: -1,
-        currentLine: 0,
-        phraseLineMap: new Map(),
-        lineHistory: []
-      };
-    }
-    
-    const state = global.__FLICKERFADE_MULTILINE_STATE__;
-    
-    // 既にこのフレーズの段番号が決まっている場合はそれを返す
-    if (state.phraseLineMap.has(phraseId)) {
-      return state.phraseLineMap.get(phraseId);
-    }
-    
-    // 手動指定がある場合はそれを使用
-    if (manualLineNumber >= 0 && manualLineNumber < totalLines) {
-      state.phraseLineMap.set(phraseId, manualLineNumber);
-      return manualLineNumber;
-    }
-    
-    // 前のフレーズとの間隔をチェック
-    if (state.lastPhraseEndMs !== -1 && 
-        startMs - state.lastPhraseEndMs > resetInterval) {
-      // リセット条件に該当：1段目に戻る
-      state.currentLine = 0;
-    }
-    
-    const lineNumber = state.currentLine % totalLines;
-    
-    // 段番号をキャッシュ
-    state.phraseLineMap.set(phraseId, lineNumber);
-    
-    // 状態更新
-    state.lastPhraseEndMs = endMs;
-    state.currentLine += 1;
-    state.lineHistory.push({
-      phraseId,
-      startMs,
-      endMs,
-      lineNumber,
-      text: params.text || ''
-    });
-    
-    return lineNumber;
   }
 };
 
-export default FlickerFadeTemplate;
+export default FlickerFadeTemplate2;

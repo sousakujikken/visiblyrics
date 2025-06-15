@@ -453,13 +453,14 @@ export class InstanceManager {
 
   // 階層的な更新処理
   update(nowMs: number) {
-    console.log('InstanceManager: update開始', { 
-      currentTime: nowMs,
-      totalInstances: this.instances.size,
-      phraseInstances: this.phraseInstances.size,
-      wordInstances: this.wordInstances.size,
-      charInstances: this.charInstances.size
-    });
+    // Note: update開始ログは頻繁すぎるためコメントアウト
+    // console.log('InstanceManager: update開始', { 
+    //   currentTime: nowMs,
+    //   totalInstances: this.instances.size,
+    //   phraseInstances: this.phraseInstances.size,
+    //   wordInstances: this.wordInstances.size,
+    //   charInstances: this.charInstances.size
+    // });
     
     this.activeInstances.clear();
     let activeCount = 0;
@@ -514,10 +515,11 @@ export class InstanceManager {
       console.error(`Error during update at ${nowMs}ms:`, error);
     }
     
-    console.log('InstanceManager: update完了', { 
-      activeInstances: activeCount,
-      activeInstancesSize: this.activeInstances.size
-    });
+    // Note: update完了ログは頻繁すぎるためコメントアウト
+    // console.log('InstanceManager: update完了', { 
+    //   activeInstances: activeCount,
+    //   activeInstancesSize: this.activeInstances.size
+    // });
   }
   
   // インスタンスが表示期間内かどうかを判定

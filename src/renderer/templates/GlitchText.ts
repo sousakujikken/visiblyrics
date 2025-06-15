@@ -222,7 +222,7 @@ export const GlitchText: IAnimationTemplate = {
     
     // このフレーズの段番号を取得または計算（一度だけ）
     const phraseId = params.id || 'unknown';
-    let lineNumber = this.getOrCalculateLineNumber!(phraseId, params, startMs, endMs, totalLines, resetInterval, manualLineNumber);
+    let lineNumber = this.getOrCalculateLineNumber!(phraseId, params, startMs, endMs, totalLines, resetInterval, manualLineNumber, nowMs);
     
     // Y座標の計算（画面中央から上下に段を配置）
     const centerY = screenHeight / 2;
@@ -283,7 +283,8 @@ export const GlitchText: IAnimationTemplate = {
     endMs: number,
     totalLines: number,
     resetInterval: number,
-    manualLineNumber: number
+    manualLineNumber: number,
+    nowMs: number
   ): number {
     // グローバルな段管理システム（GlitchText専用）
     const global = (window as any);

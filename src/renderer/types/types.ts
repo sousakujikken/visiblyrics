@@ -106,7 +106,8 @@ export interface IAnimationTemplate {
     endMs: number,
     totalLines: number,
     resetInterval: number,
-    manualLineNumber: number
+    manualLineNumber: number,
+    nowMs: number
   ): number;
   
   getDefaultCharSpacing?(text: string): number;
