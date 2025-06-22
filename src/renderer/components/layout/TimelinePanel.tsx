@@ -969,10 +969,25 @@ const TimelinePanel: React.FC<TimelinePanelProps> = ({
         setLyrics(JSON.parse(JSON.stringify(event.detail.lyrics)));
       };
       
+      // アクティベーション状態の変更をリスン
+      const handleObjectsActivated = () => {
+        // マーカーの再レンダリングをトリガーするために状態を更新
+        setLyrics(prev => [...prev]);
+      };
+      
+      const handleObjectsDeactivated = () => {
+        // マーカーの再レンダリングをトリガーするために状態を更新
+        setLyrics(prev => [...prev]);
+      };
+      
       window.addEventListener('timeline-updated', handleTimelineUpdated as EventListener);
+      window.addEventListener('objects-activated', handleObjectsActivated as EventListener);
+      window.addEventListener('objects-deactivated', handleObjectsDeactivated as EventListener);
       
       return () => {
         window.removeEventListener('timeline-updated', handleTimelineUpdated as EventListener);
+        window.removeEventListener('objects-activated', handleObjectsActivated as EventListener);
+        window.removeEventListener('objects-deactivated', handleObjectsDeactivated as EventListener);
       };
     } else {
       console.warn('TimelinePanel: Engine インスタンスが利用できません。モックデータを使用します。');
@@ -1349,6 +1364,8 @@ const TimelinePanel: React.FC<TimelinePanelProps> = ({
                 isRightOuterMarker = phrase.id === rightmostPhrase.id;
               }
               
+              const isActivated = engine?.parameterManager?.isObjectActivated(phrase.id) || false;
+              
               return (
                 <HierarchicalMarker
                   key={phrase.id}
@@ -1360,6 +1377,7 @@ const TimelinePanel: React.FC<TimelinePanelProps> = ({
                   multiSelected={isMultiSelected}
                   isLeftOuterMarker={isLeftOuterMarker}
                   isRightOuterMarker={isRightOuterMarker}
+                  isActivated={isActivated}
                   onUpdate={handleMarkerUpdate('phrase')}
                   onMultiUpdate={handleMultiUpdate}
                   onSelectionChange={handleSelectionChange}
@@ -1400,6 +1418,8 @@ const TimelinePanel: React.FC<TimelinePanelProps> = ({
                   isRightOuterMarker = word.id === rightmostWord.id;
                 }
                 
+                const isActivated = engine?.parameterManager?.isObjectActivated(word.id) || false;
+                
                 return (
                   <HierarchicalMarker
                     key={word.id}
@@ -1412,6 +1432,7 @@ const TimelinePanel: React.FC<TimelinePanelProps> = ({
                     multiSelected={isMultiSelected}
                     isLeftOuterMarker={isLeftOuterMarker}
                     isRightOuterMarker={isRightOuterMarker}
+                    isActivated={isActivated}
                     onUpdate={handleMarkerUpdate('word')}
                     onMultiUpdate={handleMultiUpdate}
                     onSelectionChange={handleSelectionChange}
@@ -1455,6 +1476,8 @@ const TimelinePanel: React.FC<TimelinePanelProps> = ({
                     isRightOuterMarker = char.id === rightmostChar.id;
                   }
                   
+                  const isActivated = engine?.parameterManager?.isObjectActivated(char.id) || false;
+                  
                   return (
                     <HierarchicalMarker
                       key={char.id}
@@ -1467,6 +1490,7 @@ const TimelinePanel: React.FC<TimelinePanelProps> = ({
                       multiSelected={isMultiSelected}
                       isLeftOuterMarker={isLeftOuterMarker}
                       isRightOuterMarker={isRightOuterMarker}
+                      isActivated={isActivated}
                       onUpdate={handleMarkerUpdate('char')}
                       onMultiUpdate={handleMultiUpdate}
                       onSelectionChange={handleSelectionChange}

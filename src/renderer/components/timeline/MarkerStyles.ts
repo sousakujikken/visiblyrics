@@ -38,16 +38,19 @@ const BASE_STYLES: Record<MarkerLevel, Omit<MarkerStyle, 'backgroundColor' | 'bo
 const COLORS = {
   phrase: {
     normal: { bg: 'rgba(66, 135, 245, 0.5)', border: 'rgba(66, 135, 245, 0.8)' },
+    activated: { bg: 'rgba(34, 197, 94, 0.5)', border: 'rgba(34, 197, 94, 0.8)' },
     selected: { bg: 'rgba(255, 204, 0, 0.4)', border: 'rgba(255, 204, 0, 0.8)' },
     multiSelected: { bg: 'rgba(255, 150, 0, 0.4)', border: 'rgba(255, 150, 0, 0.9)' }
   },
   word: {
     normal: { bg: 'rgba(100, 200, 255, 0.4)', border: 'rgba(100, 200, 255, 0.6)' },
+    activated: { bg: 'rgba(34, 197, 94, 0.4)', border: 'rgba(34, 197, 94, 0.7)' },
     selected: { bg: 'rgba(255, 204, 0, 0.4)', border: 'rgba(255, 204, 0, 0.8)' },
     multiSelected: { bg: 'rgba(255, 150, 0, 0.4)', border: 'rgba(255, 150, 0, 0.9)' }
   },
   char: {
     normal: { bg: 'rgba(120, 220, 255, 0.3)', border: 'rgba(120, 220, 255, 0.5)' },
+    activated: { bg: 'rgba(34, 197, 94, 0.3)', border: 'rgba(34, 197, 94, 0.6)' },
     selected: { bg: 'rgba(255, 204, 0, 0.4)', border: 'rgba(255, 204, 0, 0.8)' },
     multiSelected: { bg: 'rgba(255, 150, 0, 0.4)', border: 'rgba(255, 150, 0, 0.9)' }
   }
@@ -60,7 +63,8 @@ export const getMarkerStyle = (
   level: MarkerLevel,
   isSelected: boolean = false,
   isMultiSelected: boolean = false,
-  isDragging: boolean = false
+  isDragging: boolean = false,
+  isActivated: boolean = false
 ): MarkerStyle => {
   const baseStyle = BASE_STYLES[level];
   const colors = COLORS[level];
@@ -70,6 +74,8 @@ export const getMarkerStyle = (
     colorScheme = colors.multiSelected;
   } else if (isSelected) {
     colorScheme = colors.selected;
+  } else if (isActivated) {
+    colorScheme = colors.activated;
   } else {
     colorScheme = colors.normal;
   }
@@ -79,7 +85,7 @@ export const getMarkerStyle = (
   return {
     ...baseStyle,
     backgroundColor: colorScheme.bg,
-    border: `${isSelected || isMultiSelected ? '2px' : '1px'} solid ${colorScheme.border}`,
+    border: `${isSelected || isMultiSelected || isActivated ? '2px' : '1px'} solid ${colorScheme.border}`,
     cursor
   };
 };

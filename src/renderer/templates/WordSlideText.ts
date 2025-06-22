@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js';
 import { AdvancedBloomFilter } from '@pixi/filter-advanced-bloom';
+import { DropShadowFilter } from 'pixi-filters';
 import { IAnimationTemplate, HierarchyType, AnimationPhase, TemplateMetadata } from '../types/types';
 import { FontService } from '../services/FontService';
 
@@ -213,7 +214,20 @@ const WORD_SLIDE_TEXT_PARAMS = [
   { name: "glowBrightness", type: "number", default: 1.2, min: 0.5, max: 3, step: 0.1 },
   { name: "glowBlur", type: "number", default: 6, min: 0.1, max: 20, step: 0.1 },
   { name: "glowQuality", type: "number", default: 8, min: 0.1, max: 20, step: 0.1 },
-  { name: "glowPadding", type: "number", default: 50, min: 0, max: 200, step: 10 }
+  { name: "glowPadding", type: "number", default: 50, min: 0, max: 200, step: 10 },
+  
+  // Shadowエフェクト設定
+  { name: "enableShadow", type: "boolean", default: false },
+  { name: "shadowBlur", type: "number", default: 6, min: 0, max: 50, step: 0.5 },
+  { name: "shadowColor", type: "color", default: "#000000" },
+  { name: "shadowAngle", type: "number", default: 45, min: 0, max: 360, step: 15 },
+  { name: "shadowDistance", type: "number", default: 8, min: 0, max: 100, step: 1 },
+  { name: "shadowAlpha", type: "number", default: 0.8, min: 0, max: 1, step: 0.1 },
+  { name: "shadowOnly", type: "boolean", default: false },
+  
+  // 合成モード設定
+  { name: "blendMode", type: "string", default: "normal",
+    options: ["normal", "add", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion"] }
 ];
 
 export const WordSlideText: IAnimationTemplate = {
@@ -277,7 +291,20 @@ export const WordSlideText: IAnimationTemplate = {
       { name: "glowBrightness", type: "number", default: 1.2, min: 0.5, max: 3, step: 0.1 },
       { name: "glowBlur", type: "number", default: 6, min: 0.1, max: 20, step: 0.1 },
       { name: "glowQuality", type: "number", default: 8, min: 0.1, max: 20, step: 0.1 },
-      { name: "glowPadding", type: "number", default: 50, min: 0, max: 200, step: 10 }
+      { name: "glowPadding", type: "number", default: 50, min: 0, max: 200, step: 10 },
+      
+      // Shadowエフェクト設定
+      { name: "enableShadow", type: "boolean", default: false },
+      { name: "shadowBlur", type: "number", default: 6, min: 0, max: 50, step: 0.5 },
+      { name: "shadowColor", type: "color", default: "#000000" },
+      { name: "shadowAngle", type: "number", default: 45, min: 0, max: 360, step: 15 },
+      { name: "shadowDistance", type: "number", default: 8, min: 0, max: 100, step: 1 },
+      { name: "shadowAlpha", type: "number", default: 0.8, min: 0, max: 1, step: 0.1 },
+      { name: "shadowOnly", type: "boolean", default: false },
+      
+      // 合成モード設定
+      { name: "blendMode", type: "string", default: "normal",
+        options: ["normal", "add", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion"] }
     ];
   },
   
@@ -372,101 +399,77 @@ export const WordSlideText: IAnimationTemplate = {
     const glowQuality = params.glowQuality as number || 8;
     const glowPadding = params.glowPadding as number || 50;
     
+    // Shadowエフェクトの設定
+    const enableShadow = params.enableShadow as boolean ?? false;
+    const shadowBlur = params.shadowBlur as number || 6;
+    const shadowColor = params.shadowColor as string || '#000000';
+    const shadowAngle = params.shadowAngle as number || 45;
+    const shadowDistance = params.shadowDistance as number || 8;
+    const shadowAlpha = params.shadowAlpha as number || 0.8;
+    const shadowOnly = params.shadowOnly as boolean ?? false;
+    
+    const blendMode = params.blendMode as string || 'normal';
+    
     // デバッグ：グローパラメータの確認
     if (process.env.NODE_ENV === 'development') {
       console.log(`[WordSlideText] Glow params - enableGlow: ${enableGlow}, strength: ${glowStrength}, brightness: ${glowBrightness}, blur: ${glowBlur}, quality: ${glowQuality}, padding: ${glowPadding}`);
     }
     
-    // グロー効果の適用
-    if (enableGlow) {
-      // フィルターエリアの設定（グロー効果のためのパディングを追加）
+    // フィルターの適用
+    const needsPadding = enableGlow || enableShadow;
+    const maxPadding = Math.max(glowPadding, shadowDistance + shadowBlur);
+    
+    if (needsPadding) {
       const app = (window as any).__PIXI_APP__;
       if (app && app.renderer) {
         const screenWidth = app.renderer.width;
         const screenHeight = app.renderer.height;
         
-        // コンテナの現在位置を考慮してフィルターエリアを設定
         container.filterArea = new PIXI.Rectangle(
-          -glowPadding,
-          -glowPadding,
-          screenWidth + glowPadding * 2,
-          screenHeight + glowPadding * 2
+          -maxPadding,
+          -maxPadding,
+          screenWidth + maxPadding * 2,
+          screenHeight + maxPadding * 2
         );
       }
-      
-      // 既存のフィルターをチェック
-      const hasBloomFilter = container.filters && 
-        container.filters.some(filter => filter instanceof AdvancedBloomFilter);
-      
-      if (!hasBloomFilter) {
-        // AdvancedBloomFilterの作成と設定
-        const bloomFilter = new AdvancedBloomFilter({
-          threshold: 0.2,
-          bloomScale: glowStrength,
-          brightness: glowBrightness,
-          blur: glowBlur,
-          quality: glowQuality,
-          kernels: null,
-          pixelSize: { x: 1, y: 1 }
-        });
-        
-        // フィルターの適用
-        container.filters = container.filters || [];
-        container.filters.push(bloomFilter);
-        
-        // デバッグ：新しいフィルター作成
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[WordSlideText] Created new BloomFilter with params:`, {
-            bloomScale: glowStrength,
-            brightness: glowBrightness,
-            blur: glowBlur,
-            quality: glowQuality
-          });
-        }
-      } else {
-        // 既存のBloomFilterのパラメータを更新
-        const bloomFilter = container.filters.find(filter => filter instanceof AdvancedBloomFilter) as AdvancedBloomFilter;
-        if (bloomFilter) {
-          bloomFilter.bloomScale = glowStrength;
-          bloomFilter.brightness = glowBrightness;
-          bloomFilter.blur = glowBlur;
-          bloomFilter.quality = glowQuality;
-          
-          // フィルターエリアも更新
-          const app = (window as any).__PIXI_APP__;
-          if (app && app.renderer) {
-            const screenWidth = app.renderer.width;
-            const screenHeight = app.renderer.height;
-            container.filterArea = new PIXI.Rectangle(
-              -glowPadding,
-              -glowPadding,
-              screenWidth + glowPadding * 2,
-              screenHeight + glowPadding * 2
-            );
-          }
-          
-          // デバッグ：既存フィルター更新
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`[WordSlideText] Updated existing BloomFilter with params:`, {
-              bloomScale: glowStrength,
-              brightness: glowBrightness,
-              blur: glowBlur,
-              quality: glowQuality
-            });
-          }
-        }
-      }
     } else {
-      // グローが無効の場合、BloomFilterを除去
-      if (container.filters) {
-        container.filters = container.filters.filter(filter => !(filter instanceof AdvancedBloomFilter));
-        if (container.filters.length === 0) {
-          container.filters = null;
-        }
-      }
-      // フィルターエリアもリセット
       container.filterArea = null;
     }
+    
+    // フィルター配列の初期化
+    const filters: PIXI.Filter[] = [];
+    
+    // Shadowエフェクトの適用
+    if (enableShadow) {
+      const shadowFilter = new DropShadowFilter({
+        blur: shadowBlur,
+        color: shadowColor,
+        alpha: shadowAlpha,
+        angle: shadowAngle, // 度のまま使用
+        distance: shadowDistance,
+        quality: 4
+      });
+      // shadowOnlyはプロパティとして後から設定
+      (shadowFilter as any).shadowOnly = shadowOnly;
+      filters.push(shadowFilter);
+    }
+    
+    // Glowエフェクトの適用
+    if (enableGlow) {
+      const bloomFilter = new AdvancedBloomFilter({
+        threshold: 0.2,
+        bloomScale: glowStrength,
+        brightness: glowBrightness,
+        blur: glowBlur,
+        quality: glowQuality,
+        kernels: null,
+        pixelSize: { x: 1, y: 1 }
+      });
+      filters.push(bloomFilter);
+    }
+    
+    // フィルターの設定
+    container.filters = filters.length > 0 ? filters : null;
     // パラメータの取得
     const phraseOffsetX = params.phraseOffsetX as number || 0;
     const phraseOffsetY = params.phraseOffsetY as number || 0;
@@ -582,6 +585,25 @@ export const WordSlideText: IAnimationTemplate = {
     
     // デバッグログ：ジャンプ問題調査用のみ
     // console.log(`WordSlideText フレーズ: totalYOffset=${totalYOffset}, centerY=${centerY}, alpha=${alpha}, xOffset=${xOffset}`);
+    
+    // 合成モードの適用
+    const blendModeMap: Record<string, PIXI.BLEND_MODES> = {
+      'normal': PIXI.BLEND_MODES.NORMAL,
+      'add': PIXI.BLEND_MODES.ADD,
+      'multiply': PIXI.BLEND_MODES.MULTIPLY,
+      'screen': PIXI.BLEND_MODES.SCREEN,
+      'overlay': PIXI.BLEND_MODES.OVERLAY,
+      'darken': PIXI.BLEND_MODES.DARKEN,
+      'lighten': PIXI.BLEND_MODES.LIGHTEN,
+      'color-dodge': PIXI.BLEND_MODES.COLOR_DODGE,
+      'color-burn': PIXI.BLEND_MODES.COLOR_BURN,
+      'hard-light': PIXI.BLEND_MODES.HARD_LIGHT,
+      'soft-light': PIXI.BLEND_MODES.SOFT_LIGHT,
+      'difference': PIXI.BLEND_MODES.DIFFERENCE,
+      'exclusion': PIXI.BLEND_MODES.EXCLUSION
+    };
+    
+    container.blendMode = blendModeMap[blendMode] || PIXI.BLEND_MODES.NORMAL;
     
     // フレーズコンテナを配置
     container.position.set(centerX + xOffset, centerY);

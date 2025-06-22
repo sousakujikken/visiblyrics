@@ -3,6 +3,7 @@ import Engine from '../../engine/Engine';
 import { PhraseUnit, WordUnit, CharUnit } from '../../types/types';
 import { ProjectFileManager } from '../../services/ProjectFileManager';
 import { calculateCharacterIndices } from '../../utils/characterIndexCalculator';
+import WordSplitEditor from './WordSplitEditor';
 import './LyricsEditor.css';
 
 interface LyricsEditorProps {
@@ -21,6 +22,7 @@ const LyricsEditor: React.FC<LyricsEditorProps> = ({ engine, onClose }) => {
   const [editingCell, setEditingCell] = useState<EditableCell | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [saveStatus, setSaveStatus] = useState<string>('');
+  const [wordSplitModalPhrase, setWordSplitModalPhrase] = useState<PhraseUnit | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
   const projectFileManager = useRef<ProjectFileManager>(new ProjectFileManager(engine));
 
@@ -254,6 +256,50 @@ const LyricsEditor: React.FC<LyricsEditorProps> = ({ engine, onClose }) => {
     engine.updateLyricsData(lyricsWithIndices);
   };
 
+  // 上に行を挿入
+  const insertLineAbove = (currentPhraseId: string) => {
+    const currentIndex = lyrics.findIndex(phrase => phrase.id === currentPhraseId);
+    if (currentIndex === -1) return;
+
+    const currentPhrase = lyrics[currentIndex];
+    let newStart: number;
+    let newEnd: number;
+
+    if (currentIndex === 0) {
+      // 先頭の行の場合: 0からcurrentPhraseの開始時刻まで
+      newStart = 0;
+      newEnd = currentPhrase.start;
+    } else {
+      // それ以外: 前の行の終了時刻からcurrentPhraseの開始時刻まで
+      const previousPhrase = lyrics[currentIndex - 1];
+      newStart = previousPhrase.end;
+      newEnd = currentPhrase.start;
+    }
+
+    // 新しいフレーズを作成
+    const newPhrase: PhraseUnit = {
+      id: `phrase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      phrase: '新しい歌詞',
+      start: newStart,
+      end: newEnd,
+      words: []
+    };
+
+    // 新しいフレーズのテキストと文字タイミングを設定
+    const updatedNewPhrase = updatePhraseText(newPhrase, '新しい歌詞');
+
+    // 歌詞配列に挿入
+    const updatedLyrics = [
+      ...lyrics.slice(0, currentIndex),
+      updatedNewPhrase,
+      ...lyrics.slice(currentIndex)
+    ];
+
+    // 文字インデックスを再計算
+    const lyricsWithIndices = calculateCharacterIndices(updatedLyrics);
+    engine.updateLyricsData(lyricsWithIndices);
+  };
+
   // プロジェクトの保存
   const handleSave = async () => {
     setSaveStatus('保存中...');
@@ -275,6 +321,30 @@ const LyricsEditor: React.FC<LyricsEditorProps> = ({ engine, onClose }) => {
       setSaveStatus('保存エラー');
       console.error('Save error:', error);
     }
+  };
+
+  // 単語分割編集を開始
+  const openWordSplitEditor = (phrase: PhraseUnit) => {
+    setWordSplitModalPhrase(phrase);
+  };
+
+  // 単語分割編集結果を保存
+  const handleWordSplitSave = (updatedPhrase: PhraseUnit) => {
+    const updatedLyrics = lyrics.map(phrase => 
+      phrase.id === updatedPhrase.id ? updatedPhrase : phrase
+    );
+    
+    setLyrics(updatedLyrics);
+    
+    // エンジンに更新を反映
+    engine.updateLyricsData(updatedLyrics, true, '単語分割編集');
+    
+    setWordSplitModalPhrase(null);
+  };
+
+  // 単語分割編集をキャンセル
+  const handleWordSplitClose = () => {
+    setWordSplitModalPhrase(null);
   };
 
   // 時間フォーマット
@@ -398,6 +468,20 @@ const LyricsEditor: React.FC<LyricsEditorProps> = ({ engine, onClose }) => {
                 </td>
                 <td className="action-cell">
                   <button 
+                    onClick={() => openWordSplitEditor(phrase)}
+                    className="word-split-button"
+                    title="単語分割を編集"
+                  >
+                    単語分割
+                  </button>
+                  <button 
+                    onClick={() => insertLineAbove(phrase.id)}
+                    className="insert-button"
+                    title="上に行を挿入"
+                  >
+                    ↑挿入
+                  </button>
+                  <button 
                     onClick={() => deletePhrase(phrase.id)}
                     className="delete-button"
                     title="フレーズを削除"
@@ -416,6 +500,19 @@ const LyricsEditor: React.FC<LyricsEditorProps> = ({ engine, onClose }) => {
           </div>
         )}
       </div>
+      
+      {/* 単語分割編集モーダル */}
+      {wordSplitModalPhrase && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <WordSplitEditor 
+              phrase={wordSplitModalPhrase}
+              onSave={handleWordSplitSave}
+              onClose={handleWordSplitClose}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

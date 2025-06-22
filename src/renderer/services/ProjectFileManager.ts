@@ -28,6 +28,8 @@ export interface ProjectFileData {
   globalParams: Record<string, any>;
   objectParams: Record<string, Record<string, any>>;
   backgroundColor?: string;
+  // アクティベーション情報
+  activatedObjects?: string[];
   // 後方互換性のため（読み込み時のみ使用）
   defaultTemplateId?: string;
   templateAssignments?: Record<string, string>;
@@ -85,17 +87,20 @@ export class ProjectFileManager {
       objectParams: projectData.objectParams,
       backgroundColor: projectData.backgroundColor,
       audioFileName: projectData.audio.fileName,
-      audioFileDuration: projectData.audio.duration
+      audioFileDuration: projectData.audio.duration,
+      activatedObjects: projectData.activatedObjects || []
     };
     
     // グローバルテンプレートを設定
     this.engine.getTemplateManager().setDefaultTemplateId(globalTemplateId);
     
-    // グローバルパラメータを復元
-    if (projectData.globalParams) {
-      this.engine.getParameterManager().updateGlobalParams(projectData.globalParams);
-      console.log('ProjectFileManager: グローバルパラメータを復元:', projectData.globalParams);
-    }
+    // パラメータを復元（アクティベーション情報を含む）
+    this.engine.getParameterManager().importParameters({
+      global: projectData.globalParams,
+      objects: projectData.objectParams,
+      activatedObjects: projectData.activatedObjects || []
+    });
+    console.log('ProjectFileManager: パラメータを復元 (アクティベーション情報含む)');
     
     this.engine.getStateManager().importState(state);
     
@@ -106,14 +111,6 @@ export class ProjectFileManager {
       if (templateId && templateId !== '__global__') {
         // 個別テンプレートが指定されている場合
         this.engine.getTemplateManager().assignTemplate(objectId, templateId);
-      }
-      
-      // templateId以外のパラメータを設定
-      const paramsWithoutTemplateId = { ...params };
-      delete paramsWithoutTemplateId.templateId;
-      
-      if (Object.keys(paramsWithoutTemplateId).length > 0) {
-        this.engine.getParameterManager().updateObjectParams(objectId, paramsWithoutTemplateId);
       }
     }
     
@@ -131,6 +128,11 @@ export class ProjectFileManager {
     // プロジェクトロードイベント発行
     window.dispatchEvent(new CustomEvent('project-loaded', { 
       detail: { globalTemplateId }
+    }));
+    
+    // タイムライン更新イベントを発火（アクティベーション状態の反映のため）
+    window.dispatchEvent(new CustomEvent('timeline-updated', {
+      detail: { lyrics: this.engine.phrases }
     }));
     
     DebugEventBus.emit('project-loaded', { 
@@ -203,17 +205,20 @@ export class ProjectFileManager {
         objectParams: projectData.objectParams,
         backgroundColor: projectData.backgroundColor,
         audioFileName: projectData.audio.fileName,
-        audioFileDuration: projectData.audio.duration
+        audioFileDuration: projectData.audio.duration,
+        activatedObjects: projectData.activatedObjects || []
       };
       
       // グローバルテンプレートを設定
       this.engine.getTemplateManager().setDefaultTemplateId(globalTemplateId);
       
-      // グローバルパラメータを復元
-      if (projectData.globalParams) {
-        this.engine.getParameterManager().updateGlobalParams(projectData.globalParams);
-        console.log('ProjectFileManager: グローバルパラメータを復元:', projectData.globalParams);
-      }
+      // パラメータを復元（アクティベーション情報を含む）
+      this.engine.getParameterManager().importParameters({
+        global: projectData.globalParams,
+        objects: projectData.objectParams,
+        activatedObjects: projectData.activatedObjects || []
+      });
+      console.log('ProjectFileManager: パラメータを復元 (アクティベーション情報含む)');
       
       this.engine.getStateManager().importState(state);
       
@@ -224,14 +229,6 @@ export class ProjectFileManager {
         if (templateId && templateId !== '__global__') {
           // 個別テンプレートが指定されている場合
           this.engine.getTemplateManager().assignTemplate(objectId, templateId);
-        }
-        
-        // templateId以外のパラメータを設定
-        const paramsWithoutTemplateId = { ...params };
-        delete paramsWithoutTemplateId.templateId;
-        
-        if (Object.keys(paramsWithoutTemplateId).length > 0) {
-          this.engine.getParameterManager().updateObjectParams(objectId, paramsWithoutTemplateId);
         }
       }
       
@@ -388,6 +385,9 @@ export class ProjectFileManager {
       }
     }
     
+    // パラメータマネージャーからアクティベーション情報を取得
+    const paramExport = this.engine.getParameterManager().exportParameters();
+    
     return {
       version: ProjectFileManager.CURRENT_VERSION,
       metadata: {
@@ -403,7 +403,8 @@ export class ProjectFileManager {
       globalTemplateId: globalTemplateId,
       globalParams: state.globalParams,
       objectParams: enhancedObjectParams,
-      backgroundColor: state.backgroundColor
+      backgroundColor: state.backgroundColor,
+      activatedObjects: paramExport.activatedObjects || []
     };
   }
   

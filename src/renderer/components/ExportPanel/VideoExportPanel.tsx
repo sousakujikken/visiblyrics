@@ -30,6 +30,7 @@ const VideoExportPanel: React.FC<VideoExportPanelProps> = ({ engine, onClose }) 
   const [useCustomRange, setUseCustomRange] = useState(false);
   const [startTime, setStartTime] = useState(0);
   const [endTime, setEndTime] = useState(60000);
+  const [includeMusicTrack, setIncludeMusicTrack] = useState(true);
   
   // 入力フィールドの生の値を保持（入力中の値を保持するため）
   const [startTimeInput, setStartTimeInput] = useState('00:00.000');
@@ -91,7 +92,8 @@ const VideoExportPanel: React.FC<VideoExportPanelProps> = ({ engine, onClose }) 
         fileName: 'animation_export.mp4', // 一時的なファイル名（実際の出力では使用されない）
         startTime: useCustomRange ? startTime : 0,
         endTime: useCustomRange ? endTime : duration,
-        includeDebugVisuals
+        includeDebugVisuals,
+        includeMusicTrack
       };
       
       // 推奨出力方法を取得（現在は常にseek-and-snap）
@@ -141,7 +143,8 @@ const VideoExportPanel: React.FC<VideoExportPanelProps> = ({ engine, onClose }) 
         fileName: 'debug_3sec_animation_export.mp4',
         startTime: startTime,
         endTime: startTime + 3000,
-        includeDebugVisuals: true
+        includeDebugVisuals: true,
+        includeMusicTrack
       };
       
       const outputPath = await engine.videoExporter.startDirectExport(
@@ -173,7 +176,8 @@ const VideoExportPanel: React.FC<VideoExportPanelProps> = ({ engine, onClose }) 
         fileName: 'debug_15sec_batch_test_animation_export.mp4',
         startTime: startTime,
         endTime: startTime + 15000, // 15秒
-        includeDebugVisuals: true
+        includeDebugVisuals: true,
+        includeMusicTrack
       };
       
       
@@ -228,6 +232,7 @@ const VideoExportPanel: React.FC<VideoExportPanelProps> = ({ engine, onClose }) 
         startTime: useCustomRange ? startTime : 0,
         endTime: useCustomRange ? endTime : engine.getMaxTime(),
         includeDebugVisuals,
+        includeMusicTrack,
         outputPath: filePath // フルパスを追加
       };
       
@@ -483,6 +488,20 @@ const VideoExportPanel: React.FC<VideoExportPanelProps> = ({ engine, onClose }) 
             <label htmlFor="debug-visuals">デバッグ表示を含める</label>
           </div>
           
+        </div>
+
+        <div className="export-setting-group">
+          <h3>音声設定</h3>
+          <div className="input-group checkbox">
+            <input
+              type="checkbox"
+              id="include-music"
+              checked={includeMusicTrack}
+              onChange={(e) => setIncludeMusicTrack(e.target.checked)}
+              disabled={isExporting}
+            />
+            <label htmlFor="include-music">読み込んだ音楽を含める</label>
+          </div>
         </div>
 
         <div className="export-setting-group">

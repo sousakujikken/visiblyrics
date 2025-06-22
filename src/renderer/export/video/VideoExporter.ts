@@ -8,6 +8,7 @@
 import { Engine } from '../../engine/Engine';
 import { ResolutionManager } from './ResolutionManager';
 import { getElectronAPI } from '../../../shared/electronAPI';
+import { electronMediaManager } from '../../services/ElectronMediaManager';
 import type { AspectRatio, Orientation, VideoQuality, CustomResolution } from '../../types/types';
 
 // Legacy compatibility types
@@ -343,11 +344,24 @@ export class VideoExporter {
       message: '最終動画を結合中...'
     });
     
+    // 音声ファイルのパスを取得（音楽を含める場合のみ）
+    let audioPath: string | undefined;
+    if (options.includeMusicTrack) {
+      const currentAudioURL = electronMediaManager.getCurrentAudioFileURL();
+      if (currentAudioURL) {
+        // file:// プロトコルを除去してファイルパスに変換
+        audioPath = currentAudioURL.startsWith('file://') 
+          ? decodeURIComponent(currentAudioURL.replace('file://', ''))
+          : currentAudioURL;
+      }
+    }
+
     const finalVideoPath = await this.electronAPI.composeFinalVideo({
       sessionId: this.sessionId,
       batchVideos,
       fileName: options.fileName,
       includeMusicTrack: options.includeMusicTrack || false,
+      audioPath,
       outputPath: options.outputPath // フルパスを追加
     });
     

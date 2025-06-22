@@ -102,19 +102,20 @@ export class TemplateManager {
     return this.templates.get(this.defaultTemplateId)!;
   }
   
-  // 親オブジェクトIDを取得するヘルパーメソッド
+  // 親オブジェクトIDを取得するヘルパーメソッド（正規表現による堅牢な実装）
   private getParentObjectId(objectId: string): string | null {
-    // IDの形式: phrase_0_word_1_char_2
-    const parts = objectId.split('_');
+    // 文字ID: 任意の文字列_char_数字または任意文字列 → 親は単語
+    const charPattern = /^(.+)_char_(?:\d+|.+)$/;
+    const charMatch = objectId.match(charPattern);
+    if (charMatch) {
+      return charMatch[1]; // 単語IDを返す
+    }
     
-    if (parts.length >= 4) {
-      if (parts[parts.length - 2] === 'char') {
-        // 文字の場合、親は単語
-        return parts.slice(0, parts.length - 2).join('_');
-      } else if (parts[parts.length - 2] === 'word') {
-        // 単語の場合、親はフレーズ
-        return parts.slice(0, parts.length - 2).join('_');
-      }
+    // 単語ID: 任意の文字列_word_数字または任意文字列 → 親はフレーズ
+    const wordPattern = /^(.+)_word_(?:\d+|.+)$/;
+    const wordMatch = objectId.match(wordPattern);
+    if (wordMatch) {
+      return wordMatch[1]; // フレーズIDを返す
     }
     
     return null;
@@ -212,5 +213,16 @@ export class TemplateManager {
   // テンプレート割り当て情報取得
   getAssignments(): Map<string, string> {
     return new Map(this.assignments);
+  }
+  
+  // 個別テンプレート割り当てを解除
+  unassignTemplate(objectId: string): boolean {
+    return this.assignments.delete(objectId);
+  }
+  
+  // 全ての個別テンプレート割り当てをクリア
+  clearAllAssignments(): void {
+    console.log(`TemplateManager: ${this.assignments.size}個の個別テンプレート割り当てをクリア`);
+    this.assignments.clear();
   }
 }

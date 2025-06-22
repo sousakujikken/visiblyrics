@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js';
 import { AdvancedBloomFilter } from '@pixi/filter-advanced-bloom';
+import { DropShadowFilter } from 'pixi-filters';
 import { IAnimationTemplate, HierarchyType, AnimationPhase, TemplateMetadata } from '../types/types';
 import { FontService } from '../services/FontService';
 
@@ -139,7 +140,20 @@ export const FlickerFadeTemplate: IAnimationTemplate = {
       { name: "glowBrightness", type: "number", default: 1.2, min: 0.5, max: 3, step: 0.1 },
       { name: "glowBlur", type: "number", default: 6, min: 0.1, max: 20, step: 0.1 },
       { name: "glowQuality", type: "number", default: 8, min: 0.1, max: 20, step: 0.1 },
-      { name: "glowPadding", type: "number", default: 50, min: 0, max: 200, step: 10 }
+      { name: "glowPadding", type: "number", default: 50, min: 0, max: 200, step: 10 },
+      
+      // Shadowエフェクト設定
+      { name: "enableShadow", type: "boolean", default: false },
+      { name: "shadowBlur", type: "number", default: 6, min: 0, max: 50, step: 0.5 },
+      { name: "shadowColor", type: "color", default: "#000000" },
+      { name: "shadowAngle", type: "number", default: 45, min: 0, max: 360, step: 15 },
+      { name: "shadowDistance", type: "number", default: 8, min: 0, max: 100, step: 1 },
+      { name: "shadowAlpha", type: "number", default: 0.8, min: 0, max: 1, step: 0.1 },
+      { name: "shadowOnly", type: "boolean", default: false },
+      
+      // 合成モード設定
+      { name: "blendMode", type: "string", default: "normal",
+        options: ["normal", "add", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion"] }
     ];
   },
 
@@ -257,6 +271,16 @@ export const FlickerFadeTemplate: IAnimationTemplate = {
     const glowBlur = params.glowBlur as number || 6;
     const glowQuality = params.glowQuality as number || 8;
     const glowPadding = params.glowPadding as number || 50;
+    
+    const enableShadow = params.enableShadow as boolean ?? false;
+    const shadowBlur = params.shadowBlur as number || 6;
+    const shadowColor = params.shadowColor as string || '#000000';
+    const shadowAngle = params.shadowAngle as number || 45;
+    const shadowDistance = params.shadowDistance as number || 8;
+    const shadowAlpha = params.shadowAlpha as number || 0.8;
+    const shadowOnly = params.shadowOnly as boolean ?? false;
+    
+    const blendMode = params.blendMode as string || 'normal';
 
     // アプリケーションサイズの取得
     const app = (window as any).__PIXI_APP__;
@@ -322,50 +346,75 @@ export const FlickerFadeTemplate: IAnimationTemplate = {
     const firstLineY = baseCenterY - totalHeight / 2;
     let centerY = firstLineY + lineIndex * lineSpacing + phraseOffsetY;
 
-    // Glowエフェクトの適用
-    if (enableGlow) {
+    // フィルターの適用
+    const needsPadding = enableGlow || enableShadow;
+    const maxPadding = Math.max(glowPadding, shadowDistance + shadowBlur);
+    
+    if (needsPadding) {
       container.filterArea = new PIXI.Rectangle(
-        -glowPadding,
-        -glowPadding,
-        screenWidth + glowPadding * 2,
-        screenHeight + glowPadding * 2
+        -maxPadding,
+        -maxPadding,
+        screenWidth + maxPadding * 2,
+        screenHeight + maxPadding * 2
       );
-
-      const hasBloomFilter = container.filters && 
-        container.filters.some(filter => filter instanceof AdvancedBloomFilter);
-
-      if (!hasBloomFilter) {
-        const bloomFilter = new AdvancedBloomFilter({
-          threshold: 0.2,
-          bloomScale: glowStrength,
-          brightness: glowBrightness,
-          blur: glowBlur,
-          quality: glowQuality,
-          kernels: null,
-          pixelSize: { x: 1, y: 1 }
-        });
-
-        container.filters = container.filters || [];
-        container.filters.push(bloomFilter);
-      } else {
-        const bloomFilter = container.filters.find(filter => filter instanceof AdvancedBloomFilter) as AdvancedBloomFilter;
-        if (bloomFilter) {
-          bloomFilter.bloomScale = glowStrength;
-          bloomFilter.brightness = glowBrightness;
-          bloomFilter.blur = glowBlur;
-          bloomFilter.quality = glowQuality;
-        }
-      }
     } else {
-      if (container.filters) {
-        container.filters = container.filters.filter(filter => !(filter instanceof AdvancedBloomFilter));
-        if (container.filters.length === 0) {
-          container.filters = null;
-        }
-      }
       container.filterArea = null;
     }
+    
+    // フィルター配列の初期化
+    const filters: PIXI.Filter[] = [];
+    
+    // Shadowエフェクトの適用
+    if (enableShadow) {
+      const shadowFilter = new DropShadowFilter({
+        blur: shadowBlur,
+        color: shadowColor,
+        alpha: shadowAlpha,
+        angle: shadowAngle, // 度のまま使用
+        distance: shadowDistance,
+        quality: 4
+      });
+      // shadowOnlyはプロパティとして後から設定
+      (shadowFilter as any).shadowOnly = shadowOnly;
+      filters.push(shadowFilter);
+    }
+    
+    // Glowエフェクトの適用
+    if (enableGlow) {
+      const bloomFilter = new AdvancedBloomFilter({
+        threshold: 0.2,
+        bloomScale: glowStrength,
+        brightness: glowBrightness,
+        blur: glowBlur,
+        quality: glowQuality,
+        kernels: null,
+        pixelSize: { x: 1, y: 1 }
+      });
+      filters.push(bloomFilter);
+    }
+    
+    // フィルターの設定
+    container.filters = filters.length > 0 ? filters : null;
 
+    // 合成モードの適用
+    const blendModeMap: Record<string, PIXI.BLEND_MODES> = {
+      'normal': PIXI.BLEND_MODES.NORMAL,
+      'add': PIXI.BLEND_MODES.ADD,
+      'multiply': PIXI.BLEND_MODES.MULTIPLY,
+      'screen': PIXI.BLEND_MODES.SCREEN,
+      'overlay': PIXI.BLEND_MODES.OVERLAY,
+      'darken': PIXI.BLEND_MODES.DARKEN,
+      'lighten': PIXI.BLEND_MODES.LIGHTEN,
+      'color-dodge': PIXI.BLEND_MODES.COLOR_DODGE,
+      'color-burn': PIXI.BLEND_MODES.COLOR_BURN,
+      'hard-light': PIXI.BLEND_MODES.HARD_LIGHT,
+      'soft-light': PIXI.BLEND_MODES.SOFT_LIGHT,
+      'difference': PIXI.BLEND_MODES.DIFFERENCE,
+      'exclusion': PIXI.BLEND_MODES.EXCLUSION
+    };
+    
+    container.blendMode = blendModeMap[blendMode] || PIXI.BLEND_MODES.NORMAL;
+    
     // フレーズコンテナを配置
     container.position.set(centerX, centerY);
     container.alpha = 1.0;

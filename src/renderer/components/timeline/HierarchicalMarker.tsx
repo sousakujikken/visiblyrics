@@ -33,7 +33,8 @@ const HierarchicalMarker: React.FC<HierarchicalMarkerProps> = ({
   isLeftOuterMarker = false,
   isRightOuterMarker = false,
   children,
-  onDragStart
+  onDragStart,
+  isActivated = false
 }) => {
   // ドラッグ状態管理（React再レンダリングから完全保護）
   const dragStateRef = useRef<{
@@ -327,7 +328,7 @@ const HierarchicalMarker: React.FC<HierarchicalMarkerProps> = ({
 
   // スタイルの計算（新しいドラッグ状態を参照）
   const isDraggingState = dragStateRef.current.isDragging || dragState.isDragging;
-  const markerStyle = getMarkerStyle(level, isSelected, multiSelected, isDraggingState);
+  const markerStyle = getMarkerStyle(level, isSelected, multiSelected, isDraggingState, isActivated);
   const pxPerMs = timelineWidth / duration;
   const startX = (unit.start / duration) * timelineWidth;
   const width = ((unit.end - unit.start) / duration) * timelineWidth;
@@ -341,7 +342,7 @@ const HierarchicalMarker: React.FC<HierarchicalMarkerProps> = ({
 
   return (
     <div 
-      className={`hierarchical-marker ${level}-marker ${isSelected ? 'selected' : ''} ${multiSelected ? 'multi-selected' : ''}`}
+      className={`hierarchical-marker ${level}-marker ${isSelected ? 'selected' : ''} ${multiSelected ? 'multi-selected' : ''} ${isActivated ? 'activated' : ''}`}
       style={{
         position: 'absolute',
         left: `${startX}px`,

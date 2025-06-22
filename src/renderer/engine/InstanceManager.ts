@@ -357,17 +357,20 @@ export class InstanceManager {
     }
   }
   
-  // 親オブジェクトIDを取得するヘルパーメソッド
+  // 親オブジェクトIDを取得するヘルパーメソッド（正規表現による堅牢な実装）
   private getParentObjectId(objectId: string): string | null {
-    // IDの形式: phrase_0_word_1_char_2
-    const parts = objectId.split('_');
+    // 文字ID: 任意の文字列_char_数字または任意文字列 → 親は単語
+    const charPattern = /^(.+)_char_(?:\d+|.+)$/;
+    const charMatch = objectId.match(charPattern);
+    if (charMatch) {
+      return charMatch[1]; // 単語IDを返す
+    }
     
-    if (parts.length >= 4 && parts[parts.length - 2] === 'char') {
-      // 文字の場合、親は単語
-      return parts.slice(0, parts.length - 2).join('_');
-    } else if (parts.length >= 4 && parts[parts.length - 2] === 'word') {
-      // 単語の場合、親はフレーズ
-      return parts.slice(0, parts.length - 2).join('_');
+    // 単語ID: 任意の文字列_word_数字または任意文字列 → 親はフレーズ
+    const wordPattern = /^(.+)_word_(?:\d+|.+)$/;
+    const wordMatch = objectId.match(wordPattern);
+    if (wordMatch) {
+      return wordMatch[1]; // フレーズIDを返す
     }
     
     return null;

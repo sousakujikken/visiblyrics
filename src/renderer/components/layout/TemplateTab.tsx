@@ -523,20 +523,26 @@ const TemplateTab: React.FC<TemplateTabProps> = ({
   const handleGlobalParamChange = useCallback((updatedParams: Record<string, any>) => {
     if (!engine) return;
     
+    // 深いコピーを作成して参照問題を防ぐ
+    const paramsCopy = JSON.parse(JSON.stringify(updatedParams));
+    
     // エンジンに更新を反映し、状態を更新
-    engine.updateGlobalParams(updatedParams);
-    updateState({ globalParams: updatedParams });
+    engine.updateGlobalParams(paramsCopy);
+    updateState({ globalParams: paramsCopy });
   }, [engine, updateState]);
   
   // オブジェクトパラメータ変更ハンドラ（統合版）
   const handleObjectParamChange = useCallback((updatedParams: Record<string, any>) => {
     if (!engine || selectedObjectIds.length === 0) return;
     
+    // 深いコピーを作成して参照問題を防ぐ
+    const paramsCopy = JSON.parse(JSON.stringify(updatedParams));
+    
     // パラメータを更新
     selectedObjectIds.forEach(id => {
-      engine.updateObjectParams(id, selectedObjectType as any, updatedParams);
+      engine.updateObjectParams(id, selectedObjectType as any, paramsCopy);
     });
-    setObjectParams(updatedParams);
+    setObjectParams(paramsCopy);
     
     // assignTemplateの呼び出しを削除
     // （updateObjectParams内で既にインスタンス更新が行われているため）
@@ -576,6 +582,97 @@ const TemplateTab: React.FC<TemplateTabProps> = ({
       }
     }
   }, [engine, selectedObjectIds, selectedObjectType]);
+
+  // オブジェクトを明示的にアクティブ化
+  const handleActivateObjects = useCallback(() => {
+    if (!engine || selectedObjectIds.length === 0) return;
+    
+    selectedObjectIds.forEach(id => {
+      engine.parameterManager?.activateObject(id);
+    });
+    
+    console.log(`${selectedObjectIds.length}個のオブジェクトをアクティブ化しました`);
+    
+    // タイムラインマーカーの色変更をトリガー
+    const event = new CustomEvent('objects-activated', {
+      detail: {
+        objectIds: selectedObjectIds,
+        objectType: selectedObjectType
+      }
+    });
+    window.dispatchEvent(event);
+  }, [engine, selectedObjectIds, selectedObjectType]);
+
+  // オブジェクトのアクティブ化を解除
+  const handleDeactivateObjects = useCallback(() => {
+    if (!engine || selectedObjectIds.length === 0) return;
+    
+    const confirmMessage = selectedObjectIds.length === 1
+      ? `${selectedObjectIds[0]} のアクティブ化を解除しますか？（個別設定もクリアされます）`
+      : `選択された ${selectedObjectIds.length}個の${selectedObjectType} のアクティブ化を解除しますか？（個別設定もクリアされます）`;
+    
+    if (window.confirm(confirmMessage)) {
+      selectedObjectIds.forEach(id => {
+        engine.parameterManager?.deactivateObject(id);
+      });
+      
+      console.log(`${selectedObjectIds.length}個のオブジェクトのアクティブ化を解除しました`);
+      
+      // パラメータ表示をクリア
+      setObjectParams({});
+      
+      // タイムラインマーカーの色変更をトリガー
+      const event = new CustomEvent('objects-deactivated', {
+        detail: {
+          objectIds: selectedObjectIds,
+          objectType: selectedObjectType
+        }
+      });
+      window.dispatchEvent(event);
+    }
+  }, [engine, selectedObjectIds, selectedObjectType]);
+
+  // 選択されたオブジェクトのアクティブ化状態を取得
+  const getActivationStatus = useCallback(() => {
+    if (!engine || selectedObjectIds.length === 0) return { allActivated: false, someActivated: false };
+    
+    const activatedCount = selectedObjectIds.filter(id => 
+      engine.parameterManager?.isObjectActivated(id)
+    ).length;
+    
+    return {
+      allActivated: activatedCount === selectedObjectIds.length,
+      someActivated: activatedCount > 0
+    };
+  }, [engine, selectedObjectIds]);
+
+  const activationStatus = getActivationStatus();
+
+  // 全ての個別オブジェクトデータを強制クリア
+  const handleForceCleanAllObjectData = useCallback(() => {
+    if (!engine) return;
+    
+    const confirmMessage = '警告: 全ての個別オブジェクトパラメータとアクティベーション状態を完全にクリアします。\n\nこの操作により、過去に設定された全ての個別設定（フレーズ、単語、文字レベル）が削除され、グローバル設定のみが適用されるようになります。\n\nこの操作は元に戻せません。続行しますか？';
+    
+    if (window.confirm(confirmMessage)) {
+      const success = engine.forceCleanAllObjectData();
+      
+      if (success) {
+        console.log('全ての個別オブジェクトデータを強制クリアしました');
+        
+        // 選択オブジェクトのパラメータ表示もクリア
+        setObjectParams({});
+        
+        // エンジン状態を同期
+        syncWithEngineState();
+        
+        alert('全ての個別オブジェクト設定をクリアしました。\n\nタイムライン上の緑色マーカーが全て消え、グローバル設定のみが適用されています。');
+      } else {
+        console.error('個別オブジェクトデータのクリアに失敗しました');
+        alert('エラー: 個別オブジェクトデータのクリアに失敗しました。');
+      }
+    }
+  }, [engine, syncWithEngineState]);
   
   // fontsLoadedイベントリスナーの設定
   useEffect(() => {
@@ -657,6 +754,24 @@ const TemplateTab: React.FC<TemplateTabProps> = ({
                 paramConfig={getTemplateParamConfig(selectedTemplate)}
                 onChange={handleGlobalParamChange}
               />
+              
+              {/* 全個別設定強制クリアセクション */}
+              <div className="force-clean-section">
+                <h4>システムメンテナンス</h4>
+                <p>過去に設定された全ての個別オブジェクトパラメータとアクティベーション状態を強制的にクリアします</p>
+                
+                <button 
+                  className="force-clean-button"
+                  onClick={handleForceCleanAllObjectData}
+                  title="全ての個別オブジェクト設定を完全にクリアし、グローバル設定のみを適用します（元に戻せません）"
+                >
+                  全個別設定を強制クリア
+                </button>
+                
+                <div className="force-clean-warning">
+                  ⚠️ 注意: この操作は元に戻せません。全ての緑色マーカーが消え、グローバル設定のみが適用されます。
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -708,15 +823,53 @@ const TemplateTab: React.FC<TemplateTabProps> = ({
               <p>選択された {selectedObjectIds.length}個の{selectedObjectType} のパラメータを一括調整</p>
             )}
             
-            {/* 個別パラメータクリアボタン */}
-            <div className="clear-params-section">
-              <button 
-                className="clear-params-button"
-                onClick={() => handleClearSelectedObjectParams()}
-                title="選択中のオブジェクトの個別設定をすべてクリアします"
-              >
-                個別設定をクリア
-              </button>
+            {/* アクティベーション・個別パラメータ管理セクション */}
+            <div className="object-control-section">
+              <div className="activation-controls">
+                <h4>オブジェクトアクティベーション</h4>
+                <p>明示的にアクティブ化されたオブジェクトのみがグローバル設定を上書きできます</p>
+                
+                <div className="activation-buttons">
+                  <button 
+                    className={`activation-button activate ${activationStatus.allActivated ? 'active' : ''}`}
+                    onClick={handleActivateObjects}
+                    disabled={activationStatus.allActivated}
+                    title="選択中のオブジェクトを明示的にアクティブ化します（緑色のマーカーになります）"
+                  >
+                    {activationStatus.allActivated ? 'アクティブ' : 'アクティブ化'}
+                  </button>
+                  
+                  <button 
+                    className="activation-button deactivate"
+                    onClick={handleDeactivateObjects}
+                    disabled={!activationStatus.someActivated}
+                    title="選択中のオブジェクトのアクティブ化を解除します（個別設定もクリアされます）"
+                  >
+                    アクティブ化解除
+                  </button>
+                </div>
+                
+                {activationStatus.someActivated && (
+                  <div className="activation-status">
+                    <span className="status-indicator activated">●</span>
+                    {activationStatus.allActivated 
+                      ? 'すべてアクティブ化済み' 
+                      : `${selectedObjectIds.filter(id => engine?.parameterManager?.isObjectActivated(id)).length}/${selectedObjectIds.length} がアクティブ化済み`
+                    }
+                  </div>
+                )}
+              </div>
+              
+              <div className="clear-params-section">
+                <button 
+                  className="clear-params-button"
+                  onClick={handleClearSelectedObjectParams}
+                  disabled={!activationStatus.someActivated}
+                  title="選択中のオブジェクトの個別設定をすべてクリアします"
+                >
+                  個別設定をクリア
+                </button>
+              </div>
             </div>
             
             {/* 複数選択で異なるテンプレートが混在する場合はパラメータ編集を無効化 */}

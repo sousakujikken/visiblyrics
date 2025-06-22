@@ -308,9 +308,9 @@ export class Engine {
     // 歌詞データと音楽データの長い方を選択
     const maxTime = Math.max(lyricsMaxTime, musicMaxTime);
     
-    // 最大時間にバッファ（2秒）を追加して設定
+    // 最大時間にバッファ（0.2秒）を追加して設定
     // ただし、最小でも10秒は確保する
-    this.audioDuration = Math.max(maxTime + 2000, 10000);
+    this.audioDuration = Math.max(maxTime + 200, 10000);
     
     console.log(`Engine: タイムライン長さ計算完了: ${this.audioDuration}ms (歌詞: ${lyricsMaxTime}ms, 音楽: ${musicMaxTime}ms)`);
   }
@@ -847,40 +847,50 @@ export class Engine {
     // 状態保存（Undo操作時はスキップ）
     if (saveState) {
       // 変更前の状態を保存
+      const paramExport = this.parameterManager.exportParameters();
       this.projectStateManager.updateCurrentState({
         lyricsData: JSON.parse(JSON.stringify(this.phrases)), // 現在の歌詞データを保存
         currentTime: this.currentTime,
         templateAssignments: this.templateManager.exportAssignments(),
         globalParams: this.parameterManager.getGlobalParams(),
-        objectParams: this.parameterManager.exportParameters().objects || {},
+        objectParams: paramExport.objects || {},
+        activatedObjects: paramExport.activatedObjects || [],
         defaultTemplateId: this.templateManager.getDefaultTemplateId()
       });
       this.projectStateManager.saveBeforeLyricsChange(changeType);
     }
     
-    // 文字インデックスを計算してから更新
+    // 文字インデックスを計算してから更新（一度だけ実行）
     this.phrases = calculateCharacterIndices(updatedLyrics);
-    console.log('Engine: 歌詞データ更新完了（文字インデックス再計算済み）、位置再計算開始');
+    console.log('Engine: 歌詞データ更新完了（文字インデックス再計算済み）');
     
-    // 更新された歌詞データでインスタンスマネージャーを更新
-    this.charPositions.clear();
-    this.arrangeCharsOnStage(); // 位置情報を再計算
-    console.log('Engine: 位置計算完了、インスタンス再読み込み開始');
-    
-    this.instanceManager.loadPhrases(this.phrases, this.charPositions);
-    console.log('Engine: インスタンス読み込み完了、アニメーション更新開始');
+    // 変更タイプに応じた最適化処理
+    if (changeType === '単語分割編集') {
+      console.log('Engine: 単語分割編集 - 完全な位置再計算とインスタンス再構築');
+      // 単語分割の場合は文字位置が変わるため完全な再構築が必要
+      this.charPositions.clear();
+      this.arrangeCharsOnStage();
+      this.instanceManager.loadPhrases(this.phrases, this.charPositions);
+    } else {
+      console.log('Engine: デフォルト処理 - 完全な再計算');
+      // デフォルトの全体更新（タイミング変更も含む）
+      this.charPositions.clear();
+      this.arrangeCharsOnStage();
+      this.instanceManager.loadPhrases(this.phrases, this.charPositions);
+    }
     
     // 現在の時間位置でアニメーションを更新
     this.instanceManager.update(this.currentTime);
-    console.log('Engine: アニメーション更新完了、イベント発火');
+    console.log('Engine: アニメーション更新完了');
     
     // タイムライン更新イベント発火
     this.dispatchTimelineUpdatedEvent();
     
     // 新しい歌詞データをProjectStateManagerの現在状態に反映
-    console.log('Engine: ProjectStateManagerに新しい歌詞データを反映');
+    const paramExport = this.parameterManager.exportParameters();
     this.projectStateManager.updateCurrentState({
-      lyricsData: JSON.parse(JSON.stringify(this.phrases))
+      lyricsData: JSON.parse(JSON.stringify(this.phrases)),
+      activatedObjects: paramExport.activatedObjects || []
     });
     console.log('Engine: updateLyricsData処理完了');
     
@@ -955,7 +965,8 @@ export class Engine {
           templateAssignments: this.templateManager.exportAssignments(),
           globalParams: this.parameterManager.getGlobalParams(),
           objectParams: this.parameterManager.exportParameters().objects || {},
-          defaultTemplateId: this.templateManager.getDefaultTemplateId()
+          defaultTemplateId: this.templateManager.getDefaultTemplateId(),
+          activatedObjects: this.parameterManager.getActivatedObjects()
         });
         this.projectStateManager.saveBeforeParameterChange('グローバルパラメータ');
       }
@@ -978,12 +989,18 @@ export class Engine {
       const isLayoutChange = this.isLayoutAffectingChange(params);
       
       if (isLayoutChange) {
+        // レイアウト変更時、アクティブ化されたオブジェクトのパラメータを保持
+        const activatedObjectParams = this.preserveActivatedObjectParams();
+        
         // 文字配置に影響するパラメータ変更時のみ座標を再計算
         this.recalculateCharPositionsOnly();
         // CSS スケーリングも更新
         this.applyCSSScaling();
         // インスタンスを完全再構築
         this.instanceManager.loadPhrases(this.phrases, this.charPositions);
+        
+        // アクティブ化されたオブジェクトのパラメータを復元
+        this.restoreActivatedObjectParams(activatedObjectParams);
       } else {
         // 配置に影響しないパラメータ変更時は既存インスタンスを更新のみ
         this.instanceManager.updateExistingInstances();
@@ -1053,6 +1070,54 @@ export class Engine {
       return true;
     } catch (error) {
       console.error('Engine: clearSelectedObjectParamsの処理中にエラーが発生しました', error);
+      return false;
+    }
+  }
+
+  // 全ての個別オブジェクトパラメータとアクティベーション状態を強制クリア
+  forceCleanAllObjectData(): boolean {
+    try {
+      console.log('Engine: 全ての個別オブジェクトデータの強制クリア開始');
+      
+      // パラメータマネージャーで全データクリア
+      this.parameterManager.forceCleanAllObjectData();
+      
+      // テンプレートマネージャーで全ての個別テンプレート割り当てをクリア
+      this.templateManager.clearAllAssignments();
+      
+      // パラメータサービスを初期化（グローバルパラメータのみ残す）
+      const globalParams = this.parameterManager.getGlobalParams();
+      this.paramService = new ParamService(globalParams);
+      
+      // インスタンスマネージャーを完全に再構築
+      if (this.template && this.instanceManager) {
+        // 全ての文字位置を再計算
+        this.charPositions.clear();
+        this.arrangeCharsOnStage();
+        
+        // インスタンスを再読み込み
+        this.instanceManager.loadPhrases(this.phrases, this.charPositions);
+        
+        // 現在の時間位置でアニメーションを更新
+        this.instanceManager.update(this.currentTime);
+      }
+      
+      // タイムライン更新イベント発火
+      this.dispatchTimelineUpdatedEvent();
+      
+      // アクティベーション状態変更イベント発火
+      const event = new CustomEvent('objects-deactivated', {
+        detail: {
+          objectIds: [],
+          objectType: 'all'
+        }
+      });
+      window.dispatchEvent(event);
+      
+      console.log('Engine: 全ての個別オブジェクトデータの強制クリア完了');
+      return true;
+    } catch (error) {
+      console.error('Engine: forceCleanAllObjectDataの処理中にエラーが発生しました', error);
       return false;
     }
   }
@@ -1887,12 +1952,14 @@ export class Engine {
       this.instanceManager.update(this.currentTime);
       
       // 初期状態をProjectStateManagerに保存
+      const paramExport = this.parameterManager.exportParameters();
       this.projectStateManager.updateCurrentState({
         lyricsData: JSON.parse(JSON.stringify(this.phrases)),
         currentTime: this.currentTime,
         templateAssignments: this.templateManager.exportAssignments(),
         globalParams: this.parameterManager.getGlobalParams(),
-        objectParams: this.parameterManager.exportParameters().objects || {},
+        objectParams: paramExport.objects || {},
+        activatedObjects: paramExport.activatedObjects || [],
         defaultTemplateId: this.templateManager.getDefaultTemplateId()
       });
       this.projectStateManager.saveCurrentState('プロジェクト読み込み完了');
@@ -2254,6 +2321,40 @@ export class Engine {
     canvas.style.left = '50%';
     canvas.style.top = '50%';
     canvas.style.transform = 'translate(-50%, -50%)';
+  }
+  
+  /**
+   * アクティブ化されたオブジェクトのパラメータを保持
+   */
+  private preserveActivatedObjectParams(): Map<string, Record<string, any>> {
+    const preserved = new Map<string, Record<string, any>>();
+    const activatedObjects = this.parameterManager.getActivatedObjects();
+    
+    activatedObjects.forEach(objectId => {
+      const params = this.parameterManager.getObjectParams(objectId);
+      if (params && Object.keys(params).length > 0) {
+        // 深いコピーを作成して保持
+        preserved.set(objectId, JSON.parse(JSON.stringify(params)));
+      }
+    });
+    
+    console.log(`Engine: ${preserved.size}個のアクティブ化されたオブジェクトのパラメータを保持`);
+    return preserved;
+  }
+  
+  /**
+   * アクティブ化されたオブジェクトのパラメータを復元
+   */
+  private restoreActivatedObjectParams(preserved: Map<string, Record<string, any>>): void {
+    preserved.forEach((params, objectId) => {
+      // パラメータを復元
+      this.parameterManager.updateObjectParams(objectId, params);
+      
+      // インスタンスも更新
+      this.updateObjectInstance(objectId);
+    });
+    
+    console.log(`Engine: ${preserved.size}個のアクティブ化されたオブジェクトのパラメータを復元`);
   }
   
   /**
@@ -2937,10 +3038,12 @@ export class Engine {
       if (projectState) {
         this.projectStateManager.importState(projectState);
         
-        // パラメータの復元
-        if (projectState.globalParams) {
-          this.parameterManager.updateGlobalParams(projectState.globalParams);
-        }
+        // パラメータの復元（アクティベーション情報を含む）
+        this.parameterManager.importParameters({
+          global: projectState.globalParams,
+          objects: projectState.objectParams,
+          activatedObjects: projectState.activatedObjects
+        });
         
         // テンプレート割り当ての復元
         if (projectState.templateAssignments) {
