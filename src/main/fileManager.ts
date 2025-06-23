@@ -137,6 +137,26 @@ export class FileManager {
     // For now, return undefined - can be implemented later with FFmpeg
     return undefined;
   }
+  
+  async checkFileExists(filePath: string): Promise<boolean> {
+    try {
+      await fs.access(filePath);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+  
+  async readFileAsURL(filePath: string): Promise<string> {
+    try {
+      // Electronではfile://プロトコルを使用してローカルファイルにアクセス
+      const normalizedPath = path.resolve(filePath);
+      return `file://${normalizedPath}`;
+    } catch (error) {
+      console.error('Failed to create file URL:', error);
+      throw error;
+    }
+  }
 }
 
 export function setupFileHandlers() {
@@ -165,6 +185,24 @@ export function setupFileHandlers() {
       return await fileManager.selectMediaFile(type);
     } catch (error) {
       console.error(`Failed to select ${type} file:`, error);
+      throw error;
+    }
+  });
+  
+  ipcMain.handle('fs:check-file-exists', async (event, filePath: string) => {
+    try {
+      return await fileManager.checkFileExists(filePath);
+    } catch (error) {
+      console.error('Failed to check file existence:', error);
+      return false;
+    }
+  });
+  
+  ipcMain.handle('fs:read-file-as-url', async (event, filePath: string) => {
+    try {
+      return await fileManager.readFileAsURL(filePath);
+    } catch (error) {
+      console.error('Failed to read file as URL:', error);
       throw error;
     }
   });

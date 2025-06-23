@@ -34,48 +34,53 @@ export class ElectronMediaManager {
     return this.currentVideoFileURL;
   }
 
-  // 音楽ファイルの復元機能
-  async restoreAudioFile(originalFileName: string): Promise<{ audio: HTMLAudioElement; fileName: string } | null> {
+  // 音楽ファイルの復元機能 - 改善版
+  async restoreAudioFile(originalFileName: string, savedFilePath?: string): Promise<{ audio: HTMLAudioElement; fileName: string } | null> {
     try {
-      console.log(`ElectronMediaManager: 音楽ファイル復元を試行: ${originalFileName}`);
+      console.log(`ElectronMediaManager: 音楽ファイル復元を試行: ${originalFileName}`, { savedFilePath });
       
-      // 注意: 現在の実装では、ユーザーが同じファイルを再選択する必要があります
-      // 将来的には、最近使用したファイルパスのキャッシュや
-      // 「前回と同じファイルを使用しますか？」といった確認機能を実装できます
+      // 保存されたファイルパスがある場合は直接読み込みを試行
+      if (savedFilePath) {
+        try {
+          const fileExists = await window.electronAPI.checkFileExists(savedFilePath);
+          if (fileExists) {
+            console.log(`ElectronMediaManager: 保存されたパスからファイルを直接読み込み: ${savedFilePath}`);
+            return await this.loadMediaFileFromPath(savedFilePath, 'audio');
+          } else {
+            console.warn(`ElectronMediaManager: 保存されたファイルが見つかりません: ${savedFilePath}`);
+          }
+        } catch (error) {
+          console.warn(`ElectronMediaManager: 保存されたパスからの読み込みに失敗: ${savedFilePath}`, error);
+        }
+      }
       
-      const mediaInfo = await unifiedFileManager.selectAudioFile();
-      
-      // HTMLAudioElementを作成
-      const audio = document.createElement('audio');
-      audio.preload = 'metadata';
-      
-      // file:// プロトコルでローカルファイルにアクセス
-      const fileURL = unifiedFileManager.getFileURL(mediaInfo.path);
-      console.log(`ElectronMediaManager: 復元用音楽ファイルを読み込み: ${fileURL}`);
-      
-      // ファイル名を取得（パスから最後の部分を抽出）
-      const fileName = mediaInfo.path.split('/').pop() || mediaInfo.path.split('\\').pop() || originalFileName;
-      
-      // オーディオを読み込み
-      return new Promise((resolve, reject) => {
-        audio.onloadedmetadata = () => {
-          console.log(`ElectronMediaManager: 音楽ファイル復元完了:`, {
-            duration: audio.duration,
-            fileName: fileName,
-            originalFileName
-          });
-          this.backgroundAudio = audio;
-          this.currentAudioFileURL = fileURL;
-          resolve({ audio, fileName });
-        };
+      // 最近使用したファイルから同じ名前のファイルを検索
+      try {
+        const recentFiles = await this.getRecentFiles('audio');
+        const matchingFile = recentFiles.find(file => 
+          file.fileName === originalFileName || file.filePath.includes(originalFileName)
+        );
         
-        audio.onerror = (error) => {
-          console.error(`ElectronMediaManager: 音楽ファイル復元エラー:`, error);
-          reject(new Error(`Failed to restore audio file: ${originalFileName}`));
-        };
-        
-        audio.src = fileURL;
-      });
+        if (matchingFile) {
+          const fileExists = await window.electronAPI.checkFileExists(matchingFile.filePath);
+          if (fileExists) {
+            console.log(`ElectronMediaManager: 最近使用したファイルから復元: ${matchingFile.filePath}`);
+            return await this.loadMediaFileFromPath(matchingFile.filePath, 'audio');
+          }
+        }
+      } catch (error) {
+        console.warn(`ElectronMediaManager: 最近使用したファイルからの復元に失敗:`, error);
+      }
+      
+      // ファイルが見つからない場合、ユーザーに再選択を求める（通知付き）
+      console.log(`ElectronMediaManager: ファイルが見つからないため、再選択を求めます: ${originalFileName}`);
+      const message = `音楽ファイル "${originalFileName}" が見つかりません。\n同じファイルを選択してください。`;
+      if (window.confirm(message)) {
+        const mediaInfo = await unifiedFileManager.selectAudioFile();
+        return await this.loadMediaFileFromPath(mediaInfo.path, 'audio');
+      }
+      
+      return null;
       
     } catch (error) {
       console.error(`ElectronMediaManager: 音楽ファイル復元に失敗:`, error);
@@ -83,51 +88,53 @@ export class ElectronMediaManager {
     }
   }
   
-  // 背景動画ファイルの復元機能
-  async restoreBackgroundVideo(originalFileName: string): Promise<{ video: HTMLVideoElement; fileName: string } | null> {
+  // 背景動画ファイルの復元機能 - 改善版
+  async restoreBackgroundVideo(originalFileName: string, savedFilePath?: string): Promise<{ video: HTMLVideoElement; fileName: string } | null> {
     try {
-      console.log(`ElectronMediaManager: 背景動画復元を試行: ${originalFileName}`);
+      console.log(`ElectronMediaManager: 背景動画復元を試行: ${originalFileName}`, { savedFilePath });
       
-      // 注意: 現在の実装では、ユーザーが同じファイルを再選択する必要があります
-      // 将来的には、最近使用したファイルパスのキャッシュや
-      // 「前回と同じファイルを使用しますか？」といった確認機能を実装できます
+      // 保存されたファイルパスがある場合は直接読み込みを試行
+      if (savedFilePath) {
+        try {
+          const fileExists = await window.electronAPI.checkFileExists(savedFilePath);
+          if (fileExists) {
+            console.log(`ElectronMediaManager: 保存されたパスからファイルを直接読み込み: ${savedFilePath}`);
+            return await this.loadMediaFileFromPath(savedFilePath, 'video');
+          } else {
+            console.warn(`ElectronMediaManager: 保存されたファイルが見つかりません: ${savedFilePath}`);
+          }
+        } catch (error) {
+          console.warn(`ElectronMediaManager: 保存されたパスからの読み込みに失敗: ${savedFilePath}`, error);
+        }
+      }
       
-      const mediaInfo = await unifiedFileManager.selectVideoFile();
-      
-      // HTMLVideoElementを作成
-      const video = document.createElement('video');
-      video.preload = 'metadata';
-      video.muted = true; // 背景動画は常にミュート
-      
-      // file:// プロトコルでローカルファイルにアクセス
-      const fileURL = unifiedFileManager.getFileURL(mediaInfo.path);
-      console.log(`ElectronMediaManager: 復元用背景動画を読み込み: ${fileURL}`);
-      
-      // ファイル名を取得（パスから最後の部分を抽出）
-      const fileName = mediaInfo.path.split('/').pop() || mediaInfo.path.split('\\').pop() || originalFileName;
-      
-      // ビデオを読み込み
-      return new Promise((resolve, reject) => {
-        video.onloadedmetadata = () => {
-          console.log(`ElectronMediaManager: 背景動画復元完了:`, {
-            duration: video.duration,
-            videoWidth: video.videoWidth,
-            videoHeight: video.videoHeight,
-            fileName: fileName,
-            originalFileName
-          });
-          this.backgroundVideo = video;
-          this.currentVideoFileURL = fileURL;
-          resolve({ video, fileName });
-        };
+      // 最近使用したファイルから同じ名前のファイルを検索
+      try {
+        const recentFiles = await this.getRecentFiles('backgroundVideo');
+        const matchingFile = recentFiles.find(file => 
+          file.fileName === originalFileName || file.filePath.includes(originalFileName)
+        );
         
-        video.onerror = (error) => {
-          console.error(`ElectronMediaManager: 背景動画復元エラー:`, error);
-          reject(new Error(`Failed to restore background video: ${originalFileName}`));
-        };
-        
-        video.src = fileURL;
-      });
+        if (matchingFile) {
+          const fileExists = await window.electronAPI.checkFileExists(matchingFile.filePath);
+          if (fileExists) {
+            console.log(`ElectronMediaManager: 最近使用したファイルから復元: ${matchingFile.filePath}`);
+            return await this.loadMediaFileFromPath(matchingFile.filePath, 'video');
+          }
+        }
+      } catch (error) {
+        console.warn(`ElectronMediaManager: 最近使用したファイルからの復元に失敗:`, error);
+      }
+      
+      // ファイルが見つからない場合、ユーザーに再選択を求める（通知付き）
+      console.log(`ElectronMediaManager: ファイルが見つからないため、再選択を求めます: ${originalFileName}`);
+      const message = `背景動画 "${originalFileName}" が見つかりません。\n同じファイルを選択してください。`;
+      if (window.confirm(message)) {
+        const mediaInfo = await unifiedFileManager.selectVideoFile();
+        return await this.loadMediaFileFromPath(mediaInfo.path, 'video');
+      }
+      
+      return null;
       
     } catch (error) {
       console.error(`ElectronMediaManager: 背景動画復元に失敗:`, error);
@@ -353,6 +360,71 @@ export class ElectronMediaManager {
   // 最近使用したファイルから背景動画を読み込み
   async loadRecentBackgroundVideo(filePath: string): Promise<{ video: HTMLVideoElement; fileName: string } | null> {
     return this.loadRecentMediaFile('video', filePath);
+  }
+
+  // ファイルパスから直接メディアファイルを読み込むメソッド（復元機能で使用）
+  private async loadMediaFileFromPath(filePath: string, type: 'video' | 'audio'): Promise<{ video?: HTMLVideoElement; audio?: HTMLAudioElement; fileName: string }> {
+    const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'unknown';
+    const fileURL = await window.electronAPI.readFileAsURL(filePath);
+    
+    console.log(`ElectronMediaManager: loadMediaFileFromPath - fileName: ${fileName}, fileURL: ${fileURL}`);
+    
+    // メディア要素を作成
+    const mediaElement = type === 'video' 
+      ? document.createElement('video') as HTMLVideoElement
+      : document.createElement('audio') as HTMLAudioElement;
+    
+    mediaElement.preload = 'metadata';
+    if (type === 'video') {
+      (mediaElement as HTMLVideoElement).muted = true; // 動画は常にミュート
+    }
+    
+    // メディアファイル読み込み（Promise化）
+    return new Promise((resolve, reject) => {
+      mediaElement.onloadedmetadata = async () => {
+        try {
+          console.log(`ElectronMediaManager: ${type} loaded from path successfully:`, {
+            duration: mediaElement.duration,
+            fileName: fileName,
+            filePath: filePath,
+            ...(type === 'video' ? {
+              videoWidth: (mediaElement as HTMLVideoElement).videoWidth,
+              videoHeight: (mediaElement as HTMLVideoElement).videoHeight
+            } : {})
+          });
+          
+          // メディア要素をインスタンス変数に保存
+          if (type === 'video') {
+            this.backgroundVideo = mediaElement as HTMLVideoElement;
+            this.currentVideoFileURL = fileURL;
+          } else {
+            this.backgroundAudio = mediaElement as HTMLAudioElement;
+            this.currentAudioFileURL = fileURL;
+          }
+          
+          // 最近使用したファイルに追加
+          const recentFileType = type === 'video' ? 'backgroundVideo' : 'audio';
+          await this.addToRecentFiles(recentFileType, fileName, filePath);
+          
+          // 結果を返す
+          const result = type === 'video' 
+            ? { video: mediaElement as HTMLVideoElement, fileName }
+            : { audio: mediaElement as HTMLAudioElement, fileName };
+          
+          resolve(result);
+        } catch (error) {
+          console.error(`ElectronMediaManager: Error during ${type} processing from path:`, error);
+          reject(error);
+        }
+      };
+      
+      mediaElement.onerror = (error) => {
+        console.error(`ElectronMediaManager: ${type} load error from path:`, error);
+        reject(new Error(`Failed to load ${type} file from path: ${filePath}`));
+      };
+      
+      mediaElement.src = fileURL;
+    });
   }
 
   // 統一された最近使用したファイル読み込みメソッド

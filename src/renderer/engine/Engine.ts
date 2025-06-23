@@ -199,8 +199,8 @@ export class Engine {
         // まずステージ設定だけを先に適用
         await this.initializeStageConfigFromAutoSave();
         
-        // その後、通常の復元確認処理を実行
-        await this.checkAndPromptAutoRestore();
+        // 自動復元を実行（ダイアログなし）
+        await this.silentAutoRestore();
         
         console.log('Engine: ===== 自動保存データ確認完了 =====');
       } catch (error) {
@@ -599,7 +599,18 @@ export class Engine {
     
     // 前回の更新から16ms以上経過している場合のみ更新（約60FPS）
     if (elapsed > 16 || this.lastUpdateTime === 0) {
-      this.currentTime += elapsed || this.app.ticker.deltaMS;
+      const newTime = this.currentTime + (elapsed || this.app.ticker.deltaMS);
+      
+      // 終了時刻チェック - タイムライン終端で自動停止
+      if (newTime >= this.audioDuration) {
+        this.currentTime = this.audioDuration;
+        this.pause();
+        console.log(`タイムライン終了 - 自動停止: ${this.audioDuration}ms`);
+        this.dispatchCustomEvent('timeline-ended', { endTime: this.audioDuration });
+        return;
+      }
+      
+      this.currentTime = newTime;
       this.lastUpdateTime = now;
       
       // インスタンスマネージャーの更新
@@ -1166,6 +1177,14 @@ export class Engine {
          if (error === 'No codec support for selected audio sources.') {
            console.error('Engine: このファイル形式はサポートされていません。MP3、WAV、OGGファイルを使用してください。');
          }
+       },
+       onend: () => {
+         console.log('Engine: 音声再生終了 - 自動停止');
+         this.pause();
+         this.dispatchCustomEvent('audio-ended', { 
+           currentTime: this.currentTime,
+           audioFileName: this.audioFileName 
+         });
        }
     });
   }
@@ -1211,6 +1230,14 @@ export class Engine {
        },
        onloaderror: (id: number, error: unknown) => {
          console.error(`Engine: HTMLAudioElement音声ロードエラー (ID: ${id}):`, error);
+       },
+       onend: () => {
+         console.log('Engine: HTMLAudioElement音声再生終了 - 自動停止');
+         this.pause();
+         this.dispatchCustomEvent('audio-ended', { 
+           currentTime: this.currentTime,
+           audioFileName: this.audioFileName 
+         });
        }
     });
     
@@ -2885,6 +2912,27 @@ export class Engine {
       // 既存の自動保存データを読み込んで、recentFilesを保持
       const existingData = await persistenceService.loadAutoSave();
       
+      // 現在使用中の音楽・動画ファイルのパスを取得
+      let audioFilePath: string | undefined;
+      let backgroundVideoFilePath: string | undefined;
+      
+      try {
+        // ElectronMediaManagerから現在のファイルパスを取得
+        const electronMediaManager = await import('../services/ElectronMediaManager');
+        const currentAudioURL = electronMediaManager.electronMediaManager.getCurrentAudioFileURL();
+        const currentVideoURL = electronMediaManager.electronMediaManager.getCurrentVideoFileURL();
+        
+        // file:// URLからファイルパスを抽出
+        if (currentAudioURL && currentAudioURL.startsWith('file://')) {
+          audioFilePath = decodeURIComponent(currentAudioURL.replace('file://', ''));
+        }
+        if (currentVideoURL && currentVideoURL.startsWith('file://')) {
+          backgroundVideoFilePath = decodeURIComponent(currentVideoURL.replace('file://', ''));
+        }
+      } catch (error) {
+        console.warn('Engine: ファイルパス取得に失敗:', error);
+      }
+
       const autoSaveData = {
         projectState: state,
         engineState: {
@@ -2892,10 +2940,12 @@ export class Engine {
           audioInfo: {
             fileName: this.audioFileName,
             duration: this.audioDuration,
-            url: this.audioURL
+            url: this.audioURL,
+            filePath: audioFilePath  // ファイルパスを追加
           },
           backgroundVideoInfo: {
-            fileName: this.backgroundVideoFileName
+            fileName: this.backgroundVideoFileName,
+            filePath: backgroundVideoFilePath  // ファイルパスを追加
           },
           stageConfig: this.stageConfig,
           selectedTemplate: this.templateManager.getDefaultTemplateId(),
@@ -3005,10 +3055,9 @@ export class Engine {
         this.audioURL = engineState.audioInfo.url;
         console.log(`Engine: 音楽ファイル情報を復元: ${this.audioFileName}`);
         
-        // 音楽ファイルの自動読み込みを試行
-        console.log(`Engine: 音楽ファイル復元イベント発火: ${engineState.audioInfo.fileName}`);
-        this.requestAudioFileRestore(engineState.audioInfo.fileName);
-        console.log('Engine: 音楽ファイル復元イベント発火完了');
+        // 音楽ファイルの自動読み込みを試行（古いイベント方式を廃止）
+        // this.requestAudioFileRestore(engineState.audioInfo.fileName);
+        console.log('Engine: 音楽ファイル復元は silentAutoRestore で直接実行されます');
       } else {
         console.log('Engine: 音楽ファイル復元条件を満たしていません');
         console.log('Engine: 音楽ファイル情報なし - audioInfo:', engineState.audioInfo);
@@ -3025,10 +3074,9 @@ export class Engine {
         this.backgroundVideoFileName = engineState.backgroundVideoInfo.fileName;
         console.log(`Engine: 背景動画ファイル情報を復元: ${this.backgroundVideoFileName}`);
         
-        // 背景動画ファイルの自動読み込みを試行
-        console.log(`Engine: 背景動画復元イベント発火: ${engineState.backgroundVideoInfo.fileName}`);
-        this.requestBackgroundVideoRestore(engineState.backgroundVideoInfo.fileName);
-        console.log('Engine: 背景動画復元イベント発火完了');
+        // 背景動画ファイルの自動読み込みを試行（古いイベント方式を廃止）
+        // this.requestBackgroundVideoRestore(engineState.backgroundVideoInfo.fileName);
+        console.log('Engine: 背景動画復元は silentAutoRestore で直接実行されます');
       } else {
         console.log('Engine: 背景動画復元条件を満たしていません');
         console.log('Engine: 背景動画ファイル情報なし - backgroundVideoInfo:', engineState.backgroundVideoInfo);
@@ -3064,32 +3112,31 @@ export class Engine {
     }
   }
   
-  // 自動保存データの存在確認と復元プロンプト
-  private async checkAndPromptAutoRestore(): Promise<void> {
+  // 自動復元（ダイアログなし）
+  private async silentAutoRestore(): Promise<void> {
     try {
-      console.log('Engine: 自動保存データの存在確認開始');
+      console.log('Engine: 自動復元開始（ダイアログなし）');
       const hasAutoSave = await persistenceService.hasAutoSave();
       console.log(`Engine: 自動保存データの存在: ${hasAutoSave}`);
+      
       if (!hasAutoSave) {
         console.log('Engine: 自動保存データなし、復元処理をスキップ');
         return;
       }
       
-      console.log('Engine: 自動保存データの読み込み開始');
       const autoSaveData = await persistenceService.loadAutoSave();
       if (!autoSaveData) {
         console.log('Engine: 自動保存データの読み込み失敗');
         return;
       }
-      console.log('Engine: 自動保存データの読み込み成功');
       
       const timeAgo = Date.now() - autoSaveData.timestamp;
       console.log(`Engine: 自動保存データの経過時間: ${timeAgo}ms, 有効期限: ${Engine.AUTO_SAVE_EXPIRY}ms`);
       
-      // 24時間以内のデータの場合
+      // 24時間以内のデータの場合、自動的に復元
       if (timeAgo < Engine.AUTO_SAVE_EXPIRY) {
-        console.log('Engine: 自動保存データは有効期限内');
-        // Electron形式のデータ構造のみサポート
+        console.log('Engine: 自動保存データは有効期限内、自動復元を実行');
+        
         if (!autoSaveData.engineState) {
           console.error('Engine: 無効な自動保存データ形式');
           return;
@@ -3097,23 +3144,35 @@ export class Engine {
         
         const hasLyrics = !!(autoSaveData.engineState.phrases && autoSaveData.engineState.phrases.length > 0);
         const hasAudio = !!autoSaveData.engineState.audioInfo?.fileName;
-        console.log(`Engine: 復元可能なデータ - 歌詞: ${hasLyrics}, 音楽: ${hasAudio}`);
+        const hasBackgroundVideo = !!autoSaveData.engineState.backgroundVideoInfo?.fileName;
         
-        // App.tsx で復元確認ダイアログを表示するためのイベントを発火
-        console.log('Engine: 復元確認ダイアログ表示イベントを発火');
-        window.dispatchEvent(new CustomEvent('visiblyrics:autosave-available', {
-          detail: {
-            timestamp: autoSaveData.timestamp,
-            hasLyrics,
-            hasAudio
+        console.log(`Engine: 復元するデータ - 歌詞: ${hasLyrics}, 音楽: ${hasAudio}, 背景動画: ${hasBackgroundVideo}`);
+        
+        // loadFromLocalStorageを呼び出して実際の復元を実行
+        const restored = await this.loadFromLocalStorage();
+        
+        if (restored) {
+          console.log('Engine: 自動復元が完了しました');
+          
+          // 音楽・背景動画ファイルの復元処理も改善版に変更
+          if (hasAudio && autoSaveData.engineState.audioInfo) {
+            const audioInfo = autoSaveData.engineState.audioInfo;
+            await this.requestAudioFileRestoreWithPath(audioInfo.fileName, audioInfo.filePath);
           }
-        }));
-        console.log('Engine: 復元確認ダイアログ表示イベント発火完了');
+          
+          if (hasBackgroundVideo && autoSaveData.engineState.backgroundVideoInfo) {
+            const videoInfo = autoSaveData.engineState.backgroundVideoInfo;
+            await this.requestBackgroundVideoRestoreWithPath(videoInfo.fileName, videoInfo.filePath);
+          }
+        } else {
+          console.log('Engine: 自動復元に失敗しました');
+        }
       } else {
-        console.log('Engine: 自動保存データは有効期限切れ');
+        console.log('Engine: 自動保存データは有効期限切れ、削除します');
+        await persistenceService.deleteAutoSave();
       }
     } catch (error) {
-      console.error('Engine: 自動保存データの確認に失敗しました:', error);
+      console.error('Engine: 自動復元に失敗しました:', error);
     }
   }
   
@@ -3175,12 +3234,95 @@ export class Engine {
     console.log(`Engine: 音楽ファイル復元要求を発行: ${fileName}`);
   }
   
+  // 音楽ファイルの復元要求（パス付き） - 改善版
+  private async requestAudioFileRestoreWithPath(fileName: string, filePath?: string): Promise<void> {
+    try {
+      console.log(`Engine: 音楽ファイル復元要求（パス付き）: ${fileName}`, { filePath });
+      
+      // ElectronMediaManagerを直接呼び出して復元
+      const electronMediaManager = await import('../services/ElectronMediaManager');
+      const result = await electronMediaManager.electronMediaManager.restoreAudioFile(fileName, filePath);
+      
+      if (result) {
+        console.log(`Engine: 音楽ファイル復元成功: ${result.fileName}`);
+        // HTMLAudioElementをHowlerで再読み込み
+        this.loadAudioElement(result.audio, result.fileName);
+        
+        // UI側に音楽ファイル復元完了を通知
+        setTimeout(async () => {
+          const actualFileURL = electronMediaManager.electronMediaManager.getCurrentAudioFileURL();
+          const audioLoadEvent = new CustomEvent('music-file-loaded', {
+            detail: { 
+              url: actualFileURL || 'electron://loaded',
+              fileName: result.fileName,
+              timestamp: Date.now(),
+              isRestored: true  // 復元されたファイルであることを示すフラグ
+            }
+          });
+          window.dispatchEvent(audioLoadEvent);
+          console.log(`Engine: 音楽ファイル復元完了イベントを発火: ${result.fileName}`);
+        }, 100);
+      } else {
+        console.log(`Engine: 音楽ファイル復元をスキップ: ${fileName}`);
+      }
+    } catch (error) {
+      console.error(`Engine: 音楽ファイル復元に失敗: ${fileName}`, error);
+    }
+  }
+  
   private requestBackgroundVideoRestore(fileName: string): void {
     // UIコンポーネントに背景動画復元イベントを発行
     window.dispatchEvent(new CustomEvent('visiblyrics:restore-background-video', {
       detail: { fileName }
     }));
     console.log(`Engine: 背景動画復元要求を発行: ${fileName}`);
+  }
+  
+  // 背景動画の復元要求（パス付き） - 改善版
+  private async requestBackgroundVideoRestoreWithPath(fileName: string, filePath?: string): Promise<void> {
+    try {
+      console.log(`Engine: 背景動画復元要求（パス付き）: ${fileName}`, { filePath });
+      
+      // ElectronMediaManagerを直接呼び出して復元
+      const electronMediaManager = await import('../services/ElectronMediaManager');
+      const result = await electronMediaManager.electronMediaManager.restoreBackgroundVideo(fileName, filePath);
+      
+      if (result) {
+        console.log(`Engine: 背景動画復元成功: ${result.fileName}`);
+        // 背景動画として設定（Electron用メソッド）
+        this.setBackgroundVideoElement(result.video, 'cover', result.fileName);
+      } else {
+        console.log(`Engine: 背景動画復元をスキップ: ${fileName}`);
+      }
+    } catch (error) {
+      console.error(`Engine: 背景動画復元に失敗: ${fileName}`, error);
+    }
+  }
+  
+  /**
+   * カスタムイベントを window に dispatch
+   */
+  private dispatchCustomEvent(eventType: string, detail?: any): void {
+    const event = new CustomEvent(eventType, { 
+      detail: detail,
+      bubbles: true,
+      cancelable: true
+    });
+    window.dispatchEvent(event);
+    console.log(`Engine: カスタムイベント発火: ${eventType}`, detail);
+  }
+  
+  /**
+   * タイムライン更新イベントを dispatch
+   */
+  public dispatchTimelineUpdatedEvent(): void {
+    const timelineData = {
+      currentTime: this.currentTime,
+      duration: this.audioDuration,
+      phrases: this.phrases,
+      timestamp: Date.now()
+    };
+    this.dispatchCustomEvent('timeline-updated', timelineData);
   }
   
 }

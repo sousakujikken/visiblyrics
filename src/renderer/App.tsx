@@ -136,6 +136,22 @@ function App() {
       }
     };
     
+    // タイムライン終了イベントのリスナー
+    const handleTimelineEnded = (event: CustomEvent) => {
+      console.log('App: タイムライン終了イベントを受信:', event.detail);
+      // クロージャ問題を回避するため、isPlayingをチェックせずに常に停止状態に設定
+      setIsPlaying(false);
+      console.log('App: タイムライン終了により再生停止');
+    };
+    
+    // 音声終了イベントのリスナー
+    const handleAudioEnded = (event: CustomEvent) => {
+      console.log('App: 音声終了イベントを受信:', event.detail);
+      // クロージャ問題を回避するため、isPlayingをチェックせずに常に停止状態に設定
+      setIsPlaying(false);
+      console.log('App: 音声終了により再生停止');
+    };
+    
     // キーボードショートカットのハンドラ
     const handleKeyDown = (event: KeyboardEvent) => {
       // Ctrl+Z: Undo
@@ -173,6 +189,8 @@ function App() {
     window.addEventListener('timeline-updated', handleTimelineUpdated as EventListener);
     window.addEventListener('waveform-seek', handleWaveformSeek as EventListener);
     window.addEventListener('engine-seeked', handleEngineSeek as EventListener);
+    window.addEventListener('timeline-ended', handleTimelineEnded as EventListener);
+    window.addEventListener('audio-ended', handleAudioEnded as EventListener);
     window.addEventListener('keydown', handleKeyDown);
     console.log(`[${setupTimestamp}] App.tsx: イベントリスナー登録完了`);
     console.log(`[${setupTimestamp}] App.tsx: ===== イベントリスナー設定完了 =====`);
@@ -186,6 +204,8 @@ function App() {
       window.removeEventListener('timeline-updated', handleTimelineUpdated as EventListener);
       window.removeEventListener('waveform-seek', handleWaveformSeek as EventListener);
       window.removeEventListener('engine-seeked', handleEngineSeek as EventListener);
+      window.removeEventListener('timeline-ended', handleTimelineEnded as EventListener);
+      window.removeEventListener('audio-ended', handleAudioEnded as EventListener);
       window.removeEventListener('keydown', handleKeyDown);
       console.log(`[${Date.now()}] App.tsx: イベントリスナークリーンアップ完了`);
     };
@@ -227,62 +247,8 @@ function App() {
     initializeFontService();
   }, []); // 一度だけ実行
   
-  // 自動保存データの復元確認
-  useEffect(() => {
-    console.log('App.tsx: 自動保存復元イベントリスナーを設定');
-    
-    const handleAutoSaveAvailable = (event: CustomEvent) => {
-      console.log('App.tsx: ===== 自動保存復元イベントを受信 =====');
-      console.log('App.tsx: event.detail:', event.detail);
-      
-      const { timestamp, hasLyrics, hasAudio } = event.detail;
-      const timeAgo = Date.now() - timestamp;
-      const minutes = Math.floor(timeAgo / 60000);
-      const hours = Math.floor(minutes / 60);
-      
-      let timeText = '';
-      if (hours > 0) {
-        timeText = `${hours}時間前`;
-      } else if (minutes > 0) {
-        timeText = `${minutes}分前`;
-      } else {
-        timeText = '数秒前';
-      }
-      
-      const message = `前回の作業内容を復元しますか？\n（${timeText}の自動保存データ）\n\n` +
-                     `歌詞データ: ${hasLyrics ? 'あり' : 'なし'}\n` +
-                     `音楽ファイル: ${hasAudio ? 'あり' : 'なし'}`;
-      
-      console.log('App.tsx: 復元確認ダイアログを表示');
-      console.log('App.tsx: メッセージ:', message);
-      
-      if (window.confirm(message)) {
-        console.log('App.tsx: ユーザーが復元を選択しました');
-        // エンジンが初期化されるまで待つ
-        const checkEngineAndRestore = async () => {
-          if (engineRef.current) {
-            console.log('App.tsx: Engine.loadFromLocalStorage() を実行');
-            await engineRef.current.loadFromLocalStorage();
-            console.log('App.tsx: Engine.loadFromLocalStorage() 完了');
-          } else {
-            console.log('App.tsx: エンジンが初期化されていないため再試行');
-            // エンジンがまだ初期化されていない場合は少し待って再試行
-            setTimeout(checkEngineAndRestore, 100);
-          }
-        };
-        checkEngineAndRestore();
-      } else {
-        console.log('App.tsx: ユーザーが復元をキャンセルしました');
-      }
-    };
-    
-    window.addEventListener('visiblyrics:autosave-available', handleAutoSaveAvailable as EventListener);
-    
-    return () => {
-      console.log('App.tsx: 自動保存復元イベントリスナーを削除');
-      window.removeEventListener('visiblyrics:autosave-available', handleAutoSaveAvailable as EventListener);
-    };
-  }, []);
+  // 復元ダイアログを廃止し、Engine側で自動復元を実行
+  // 復元関連のイベントリスナーは不要になりました
 
   // 初回のエンジン初期化（1回のみ）
   useEffect(() => {
@@ -579,11 +545,11 @@ function App() {
         lastTimeRef.current = currentEngineTime;
       }
       
-      // 再生中で終了時間に達した場合のみ停止処理
+      // 注意: Engine側で終了時刻チェックが実装されたため、
+      // ここでの終了チェックは冗長になりましたが、念のため残しています
       if (currentEngineTime >= totalDuration && isPlaying) {
-        console.log("アニメーション終了");
+        console.log("App: アニメーション終了 (フォールバック)");
         handlePause();
-        handleReset();
         return;
       }
     }

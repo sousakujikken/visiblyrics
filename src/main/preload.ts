@@ -143,6 +143,13 @@ const electronAPI = {
       ipcRenderer.invoke('persistence:get-recent-background-video'),
   },
   
+  // File system utilities
+  checkFileExists: (filePath: string): Promise<boolean> =>
+    ipcRenderer.invoke('fs:check-file-exists', filePath),
+  
+  readFileAsURL: (filePath: string): Promise<string> =>
+    ipcRenderer.invoke('fs:read-file-as-url', filePath),
+  
   // Platform info
   platform: process.platform,
   
